@@ -11,8 +11,10 @@ Every layout starts as a pile of assets and a rough arrangement. Magnet Napkin i
 - drop a folder of images in;
 - set the canvas to the real size in px, pt, mm or inches;
 - drag, resize (aspect locked) and rotate the images;
+- add basic text that belongs to the design;
+- add notes that explicitly do **not** belong to the design;
 - read exact positions and sizes;
-- export a PNG and a JSON layout.
+- export a clean PNG, an annotated PNG, a JSON layout and a notes brief for a vision agent.
 
 No accounts. No cloud. No install. No build step.
 
