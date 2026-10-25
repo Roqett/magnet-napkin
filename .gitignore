@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Local scratch
+*.local
+scratch/
+
+# If a dev server or bundler ever appears
+node_modules/
+dist/
