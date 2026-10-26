@@ -73,6 +73,27 @@ This is the one rule the whole tool is built around:
 
 They are never merged. The JSON keeps them apart, and so does the export.
 
+## Your board is safe
+
+The board is the work, so losing it is not an option. Magnet Napkin keeps it
+in the browser's own storage and is careful about it:
+
+- **Every change is snapshotted.** The **History** button lists the versions
+  with their times and item counts, and any of them can be restored.
+  Restoring keeps the board you have now in the history too.
+- **A second tab cannot overwrite you.** If another tab saves a newer board,
+  this tab stops and says so, and offers to reload or to keep writing. It
+  never wins by being last.
+- **An empty board never replaces a full one.** If this tab has nothing in it
+  and the stored board has something, the save is refused and the status line
+  says why.
+- **A view change is not a layout change.** Moving the zoom or toggling the
+  grid is saved on its own and never rewrites the board.
+
+The rules and the reasoning are in
+[docs/AUTOSAVE_AND_RECOVERY.md](docs/AUTOSAVE_AND_RECOVERY.md), which exists
+because a real 34-magnet Redline layout was lost to exactly this failure.
+
 ## Privacy
 
 Everything stays on your machine. The page loads nothing from the network, sends nothing anywhere, and keeps no analytics. The board and its images live in your browser's own storage (IndexedDB) so that reopening the page restores it. You can wipe that with **New** or by clearing site data.
@@ -88,3 +109,8 @@ Current Chrome, Safari and Firefox. Firefox has no `webkitGetAsEntry`, so folder
 MIT. See [LICENSE](LICENSE).
 
 The first board this tool was built for was the RED-LINE GT40 cockpit at 214 × 719 pt — a private project, unrelated to this repository. The capture in the README is a promotional still, used with permission; no Redline source asset, font or brand file is in this repository.
+
+A [clip of the prototype this replaced](docs/demo/redline-prototype-demo.mp4)
+is in `docs/demo/` — the old Redline PanelBoard, doing the same job with
+hardcoded artwork. It is a record of where this came from, not a demo of this
+app.

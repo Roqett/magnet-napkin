@@ -1,10 +1,20 @@
 /* Magnet Napkin — projects and persistence.
-   The board lives in two places: IndexedDB for autosave (blobs and layout),
-   and a .napkin.json file for saving and sharing.
+   The board is the work, so the store has to survive more than one tab.
 
-   Chrome blocks IndexedDB on file:// URLs, so autosave is feature detected.
-   Without it the app still works end to end; it just cannot remember the
-   board, and it says so rather than pretending. */
+   The rules this file exists to keep:
+     1. A tab that has not edited anything never writes a layout.
+     2. An empty board never overwrites a populated one.
+     3. If another tab saved something newer, this tab stops and asks
+        instead of winning by being last.
+     4. Every write leaves a versioned snapshot behind, so a lost board can
+        be recovered rather than mourned.
+
+   Storage layout (IndexedDB):
+     project  "CURRENT"  the layout document, with a revision number
+     history  auto       { id, at, label, itemCount, noteCount, doc }
+     view     "view"     zoom, grid, asset ratio, underlay — not the layout
+     blobs    asset id   the image files
+*/
 (function (MN) {
   "use strict";
 
@@ -13,42 +23,104 @@
   const state = S.state;
 
   const FORMAT = "magnet-napkin/v1";
-  const DB_NAME = "magnet-napkin";
-  const DB_VERSION = 1;
+  const DB_MAIN = "magnet-napkin";
+  const DB_META = "magnet-napkin-meta";
   const STORE_PROJECT = "project";
+  const STORE_HISTORY = "history";
+  const STORE_VIEW = "view";
   const STORE_BLOBS = "blobs";
-  const CURRENT = "current";
+  const CURRENT = "CURRENT";
+  const VIEW_KEY = "view";
+  const HISTORY_LIMIT = 50;
+  const HISTORY_BYTES = 8 * 1024 * 1024;
+  const ROLLING_INTERVAL = 60000;
+  const CHANNEL = "magnet-napkin";
+
+  /* Every tab gets an identity, so a message from another tab is never
+     mistaken for our own. */
+  const tabId = core.uid("tab");
 
   let dbPromise = null;
   let autosaveTimer = null;
-  let lastError = null;
+  let rollingTimer = null;
+  let loadedRev = 0;       // the revision this tab last read or wrote
+  let layoutDirty = false; // this tab has made a layout change
+  let viewDirty = false;   // this tab has changed the view only
+  let otherTabUpdated = false;
+  let conflict = null;     // { rev, at, itemCount } when another tab is newer
+  let warned = false;
+  let channel = null;
 
-  /* ---------- IndexedDB ---------- */
+  /* ---------- IndexedDB ----------
+     The project and its blobs live in one database; the history and the view
+     state live in another. That is not tidiness for its own sake: raising the
+     version of a database blocks every other tab that still holds it open,
+     and a blocked upgrade leaves those tabs unable to read or write at all.
+     Keeping the new stores in a fresh database means no existing tab can ever
+     be stranded by a migration. */
 
-  function openDb() {
-    if (dbPromise) return dbPromise;
-    dbPromise = new Promise(function (resolve, reject) {
+  const dbPromises = {};
+
+  function openDb(name, stores) {
+    if (dbPromises[name]) return dbPromises[name];
+    dbPromises[name] = new Promise(function (resolve, reject) {
       let request;
       try {
-        request = window.indexedDB.open(DB_NAME, DB_VERSION);
+        request = window.indexedDB.open(name);
       } catch (err) {
         reject(err);
         return;
       }
       request.onupgradeneeded = function () {
         const db = request.result;
-        if (!db.objectStoreNames.contains(STORE_PROJECT)) db.createObjectStore(STORE_PROJECT);
-        if (!db.objectStoreNames.contains(STORE_BLOBS)) db.createObjectStore(STORE_BLOBS);
+        for (const store of stores) {
+          if (store.keyPath) {
+            if (!db.objectStoreNames.contains(store.name)) {
+              db.createObjectStore(store.name, { keyPath: store.keyPath });
+            }
+          } else if (!db.objectStoreNames.contains(store.name)) {
+            db.createObjectStore(store.name);
+          }
+        }
       };
       request.onsuccess = function () { resolve(request.result); };
       request.onerror = function () { reject(request.error || new Error("IndexedDB is unavailable")); };
-      request.onblocked = function () { reject(new Error("IndexedDB is blocked")); };
+      request.onblocked = function () { reject(new Error("IndexedDB is blocked by another tab")); };
+    }).catch(function (err) {
+      /* A database left at a higher version by an older build cannot be
+         opened with our version number. Open it as it is and use the stores
+         that are there. */
+      return new Promise(function (resolve, reject) {
+        let request;
+        try {
+          request = window.indexedDB.open(name);
+        } catch (err2) {
+          reject(err2);
+          return;
+        }
+        request.onupgradeneeded = function () {
+          const db = request.result;
+          for (const store of stores) {
+            if (store.keyPath) {
+              if (!db.objectStoreNames.contains(store.name)) db.createObjectStore(store.name, { keyPath: store.keyPath });
+            } else if (!db.objectStoreNames.contains(store.name)) {
+              db.createObjectStore(store.name);
+            }
+          }
+        };
+        request.onsuccess = function () { resolve(request.result); };
+        request.onerror = function () { reject(request.error || new Error("IndexedDB is unavailable")); };
+        request.onblocked = function () { reject(new Error("IndexedDB is blocked by another tab")); };
+      });
     });
-    return dbPromise;
+    return dbPromises[name];
   }
 
-  function withStore(name, mode, work) {
-    return openDb().then(function (db) {
+  const MAIN_STORES = [{ name: STORE_PROJECT }, { name: STORE_BLOBS }];
+  const META_STORES = [{ name: STORE_HISTORY, keyPath: "id" }, { name: STORE_VIEW }];
+
+  function withStore(dbName, name, mode, work) {
+    return openDb(dbName, dbName === DB_META ? META_STORES : MAIN_STORES).then(function (db) {
       return new Promise(function (resolve, reject) {
         const tx = db.transaction(name, mode);
         const store = tx.objectStore(name);
@@ -67,20 +139,29 @@
     });
   }
 
-  function idbGet(name, key) {
-    return withStore(name, "readonly", function (store) { return store.get(key); });
+  function idbGet(dbName, name, key) {
+    return withStore(dbName, name, "readonly", function (store) { return store.get(key); });
   }
 
-  function idbPut(name, key, value) {
-    return withStore(name, "readwrite", function (store) { return store.put(value, key); });
+  function idbPut(dbName, name, key, value) {
+    return withStore(dbName, name, "readwrite", function (store) { return store.put(value, key); });
   }
 
-  function idbDelete(name, key) {
-    return withStore(name, "readwrite", function (store) { return store.delete(key); });
+  /* For stores with a key path: the record carries its own key. */
+  function idbPutRecord(dbName, name, record) {
+    return withStore(dbName, name, "readwrite", function (store) { return store.put(record); });
   }
 
-  function idbClear(name) {
-    return withStore(name, "readwrite", function (store) { return store.clear(); });
+  function idbDelete(dbName, name, key) {
+    return withStore(dbName, name, "readwrite", function (store) { return store.delete(key); });
+  }
+
+  function idbClear(dbName, name) {
+    return withStore(dbName, name, "readwrite", function (store) { return store.clear(); });
+  }
+
+  function idbAll(dbName, name) {
+    return withStore(dbName, name, "readonly", function (store) { return store.getAll(); });
   }
 
   /* ---------- the document ---------- */
@@ -103,16 +184,19 @@
     return new Blob([bytes], { type: mime });
   }
 
-  /* The document is the state, minus the things that are not part of the
-     format: the live blobs and the internal marker on notes. */
+  /* The layout document. The underlay is view state, so it is kept out of
+     the layout that gets written on every commit. */
   function documentOf(options) {
     const opts = options || {};
+    const canvas = core.clone(state.canvas);
+    const underlay = canvas.underlay || { assetId: null, opacity: 0.25 };
+    delete canvas.underlay;
     return {
       format: FORMAT,
       name: state.projectName || "Magnet Napkin board",
-      canvas: core.clone(state.canvas),
+      canvas: canvas,
       assets: state.assets.map(function (asset) {
-        const out = {
+        return {
           id: asset.id,
           name: asset.name,
           path: asset.path,
@@ -121,7 +205,6 @@
           height: asset.height,
           embedded: false,
         };
-        return out;
       }),
       items: state.items.map(function (item) { return core.clone(item); }),
       notes: state.notes.map(function (note) {
@@ -129,12 +212,21 @@
         delete out.kind;
         return out;
       }),
+      view: opts.withView ? viewOf() : undefined,
     };
   }
 
-  /* Embedding the images makes the file portable but large. Off by default. */
-  async function documentWithImages() {
+  /* The exported project file: the layout, plus the view state merged in so
+     the file carries the underlay with it. */
+  function exportDocument(options) {
+    const opts = options || {};
     const doc = documentOf();
+    doc.canvas.underlay = core.clone(state.canvas.underlay || { assetId: null, opacity: 0.25 });
+    return doc;
+  }
+
+  async function documentWithImages() {
+    const doc = exportDocument();
     for (let i = 0; i < doc.assets.length; i += 1) {
       const asset = state.assets[i];
       if (!asset || !asset.blob) continue;
@@ -144,7 +236,326 @@
     return doc;
   }
 
-  /* ---------- validation ---------- */
+  /* ---------- view state ---------- */
+
+  function viewOf() {
+    return {
+      zoom: state.view.zoom,
+      grid: state.view.grid,
+      snap: state.view.snap,
+      aspect: state.view.aspect,
+      gridSize: state.view.gridSize,
+      assetScale: state.view.assetScale,
+      underlay: core.clone(state.canvas.underlay || { assetId: null, opacity: 0.25 }),
+    };
+  }
+
+  function applyViewState(view) {
+    if (!view || typeof view !== "object") return;
+    if (typeof view.zoom === "number") state.view.zoom = view.zoom;
+    if (typeof view.grid === "boolean") state.view.grid = view.grid;
+    if (typeof view.snap === "boolean") state.view.snap = view.snap;
+    if (typeof view.aspect === "boolean") state.view.aspect = view.aspect;
+    if (typeof view.gridSize === "number") state.view.gridSize = view.gridSize;
+    if (typeof view.assetScale === "number") state.view.assetScale = view.assetScale;
+    if (view.underlay) state.canvas.underlay = core.clone(view.underlay);
+  }
+
+  function writeView() {
+    if (!viewDirty) return Promise.resolve();
+    viewDirty = false;
+    return idbPut(DB_META, STORE_VIEW, VIEW_KEY, viewOf()).then(function () {
+      /* A view save is still a save, and the other tabs should know. It
+         carries no revision, so it can never be a conflict. */
+      broadcast({ type: "saved", kind: "view" });
+    }).catch(function () { /* the layout matters more */ });
+  }
+
+  /* Something changed that is only about how the board is being looked at. */
+  function touchView() {
+    viewDirty = true;
+    scheduleAutosave();
+  }
+
+  /* ---------- history ---------- */
+
+  function historyEntry(doc, label) {
+    return {
+      id: "h-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7),
+      at: Date.now(),
+      label: label || "edit",
+      itemCount: doc.items.length,
+      noteCount: doc.notes.length,
+      doc: doc,
+    };
+  }
+
+  async function writeHistory(doc, label) {
+    try {
+      await idbPutRecord(DB_META, STORE_HISTORY, historyEntry(doc, label));
+      await trimHistory();
+    } catch (err) {
+      /* A full disk must not cost us the current document. Trim harder and
+         move on: the current board is the one that matters. */
+      await trimHistory(10).catch(function () { });
+    }
+  }
+
+  async function trimHistory(keep) {
+    const entries = await idbAll(DB_META, STORE_HISTORY);
+    if (!entries || !entries.length) return;
+    entries.sort(function (a, b) { return b.at - a.at; });
+
+    let budget = HISTORY_BYTES;
+    let survivors = [];
+    for (const entry of entries) {
+      const size = JSON.stringify(entry.doc || {}).length;
+      if (survivors.length >= (keep || HISTORY_LIMIT) || size > budget) break;
+      survivors.push(entry);
+      budget -= size;
+    }
+    const doomed = entries.filter(function (entry) {
+      return survivors.indexOf(entry) < 0;
+    });
+    for (const entry of doomed) {
+      await idbDelete(DB_META, STORE_HISTORY, entry.id).catch(function () { });
+    }
+  }
+
+  function listHistory() {
+    return idbAll(DB_META, STORE_HISTORY).then(function (entries) {
+      return (entries || []).sort(function (a, b) { return b.at - a.at; });
+    });
+  }
+
+  /* ---------- saving ---------- */
+
+  function clock(at) {
+    const d = at ? new Date(at) : new Date();
+    const pad = function (n) { return String(n).padStart(2, "0"); };
+    return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+
+  function readCurrent() {
+    return idbGet(DB_MAIN, STORE_PROJECT, CURRENT).then(function (record) {
+      return record || null;
+    });
+  }
+
+  /* Write the layout. The guards below are the point of this function. */
+  async function persist(options) {
+    const opts = options || {};
+    const explicit = !!opts.explicit;   // the user chose New, Open or Save
+    const force = explicit || !!opts.force;
+
+    await writeView();
+
+    if (!layoutDirty && !force) return { saved: false, reason: "nothing to save" };
+
+    const doc = documentOf();
+    const stored = await readCurrent();
+
+    /* Rule 3: another tab wrote something newer than what we loaded. */
+    if (stored && stored.rev > loadedRev && !opts.overwrite) {
+      conflict = {
+        rev: stored.rev,
+        at: stored.savedAt,
+        itemCount: stored.doc && stored.doc.items ? stored.doc.items.length : 0,
+      };
+      S.emit("conflict", conflict);
+      MN.app.setStatus("Not saved: another tab is newer.");
+      return { saved: false, reason: "conflict" };
+    }
+
+    /* Rule 2: an empty board never overwrites a populated one, unless the
+       user asked for it. */
+    const storedHasContent = !!(stored && stored.doc &&
+      ((stored.doc.items && stored.doc.items.length) || (stored.doc.notes && stored.doc.notes.length)));
+    const oursIsEmpty = doc.items.length === 0 && doc.notes.length === 0;
+    if (oursIsEmpty && storedHasContent && !opts.allowEmpty) {
+      MN.app.setStatus("Not saved: this board is empty and the stored one is not.");
+      return { saved: false, reason: "empty" };
+    }
+
+    const rev = (stored ? stored.rev : 0) + 1;
+    const record = {
+      rev: rev,
+      savedAt: Date.now(),
+      tabId: tabId,
+      doc: doc,
+    };
+
+    /* The history first: if the current write fails, the board is still in
+       the history. */
+    await writeHistory(doc, opts.label);
+
+    /* An IndexedDB transaction is atomic: if this write fails, the last
+       known good CURRENT is still there. */
+    await idbPut(DB_MAIN, STORE_PROJECT, CURRENT, record);
+
+    for (const asset of state.assets) {
+      if (asset.blob) await idbPut(DB_MAIN, STORE_BLOBS, asset.id, asset.blob);
+    }
+    const live = new Set(state.assets.map(function (a) { return a.id; }));
+    const keys = await withStore(DB_MAIN, STORE_BLOBS, "readonly", function (store) { return store.getAllKeys(); });
+    for (const key of keys || []) {
+      if (!live.has(key)) await idbDelete(DB_MAIN, STORE_BLOBS, key);
+    }
+
+    loadedRev = rev;
+    layoutDirty = false;
+    lastSaveAt = record.savedAt;
+    broadcast({
+      type: "saved",
+      kind: "layout",
+      rev: rev,
+      at: lastSaveAt,
+      itemCount: doc.items.length,
+      noteCount: doc.notes.length,
+    });
+    MN.app.setStatus("Saved " + clock(lastSaveAt));
+    return { saved: true, rev: rev, at: lastSaveAt };
+  }
+
+  function scheduleAutosave() {
+    if (autosaveTimer) clearTimeout(autosaveTimer);
+    autosaveTimer = setTimeout(function () {
+      autosaveTimer = null;
+      if (MN.interact.isDragging()) {
+        scheduleAutosave();
+        return;
+      }
+      persist().catch(function (err) {
+        showStorageWarning(err);
+      });
+    }, 500);
+  }
+
+  /* A checkpoint every minute, so a long session always has something to
+     come back to. */
+  function scheduleRolling() {
+    if (rollingTimer) return;
+    rollingTimer = setTimeout(function () {
+      rollingTimer = null;
+      if (layoutDirty) {
+        persist({ label: "checkpoint" }).catch(function () { });
+      }
+      scheduleRolling();
+    }, ROLLING_INTERVAL);
+  }
+
+  /* ---------- other tabs ---------- */
+
+  function setupChannel() {
+    if (typeof BroadcastChannel === "function") {
+      try {
+        channel = new BroadcastChannel(CHANNEL);
+        channel.onmessage = function (event) { onRemoteMessage(event.data); };
+      } catch (err) {
+        channel = null;
+      }
+    }
+    /* The localStorage fallback: a ping other tabs can hear. */
+    window.addEventListener("storage", function (event) {
+      if (event.key !== CHANNEL + ":ping" || !event.newValue) return;
+      try {
+        onRemoteMessage(JSON.parse(event.newValue));
+      } catch (err) { /* not ours */ }
+    });
+    /* Coming back to the tab is a good moment to notice a newer board. */
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState !== "visible") return;
+      checkForNewer();
+    });
+  }
+
+  function broadcast(message) {
+    const payload = Object.assign({ tabId: tabId }, message);
+    if (channel) {
+      try { channel.postMessage(payload); } catch (err) { /* closed */ }
+    }
+    try {
+      window.localStorage.setItem(CHANNEL + ":ping", JSON.stringify(payload));
+    } catch (err) { /* private mode, or full */ }
+  }
+
+  function onRemoteMessage(message) {
+    if (!message || message.tabId === tabId) return;
+    if (message.type !== "saved") return;
+    otherTabUpdated = true;
+    S.emit("cross-tab", message);
+    checkForNewer();
+  }
+
+  /* Is the stored board newer than the one this tab loaded? */
+  function checkForNewer() {
+    return readCurrent().then(function (stored) {
+      if (!stored) return false;
+      if (stored.rev > loadedRev) {
+        if (!conflict) {
+          conflict = {
+            rev: stored.rev,
+            at: stored.savedAt,
+            itemCount: stored.doc && stored.doc.items ? stored.doc.items.length : 0,
+          };
+          S.emit("conflict", conflict);
+        }
+        return true;
+      }
+      return false;
+    }).catch(function () { return false; });
+  }
+
+  /* ---------- restoring ---------- */
+
+  async function restoreProject() {
+    const stored = await readCurrent();
+    const view = await idbGet(DB_META, STORE_VIEW, VIEW_KEY);
+    if (view) applyViewState(view);
+
+    if (!stored || !stored.doc) {
+      const history = await listHistory();
+      if (history.length) {
+        /* Something happened, but the current document is gone. Offer the
+           newest snapshot; never restore it silently. */
+        S.emit("recoverable", history[0]);
+        MN.app.setStatus("No stored board, but " + history.length + " snapshot" +
+          (history.length === 1 ? "" : "s") + " can be recovered.");
+      }
+      return false;
+    }
+
+    loadedRev = stored.rev;
+    const doc = stored.doc;
+
+    const assets = [];
+    for (const raw of doc.assets || []) {
+      const id = typeof raw.id === "string" ? raw.id : core.uid("a");
+      let blob = null;
+      try {
+        blob = await idbGet(DB_MAIN, STORE_BLOBS, id);
+      } catch (err) {
+        blob = null;
+      }
+      assets.push({
+        id: id,
+        name: typeof raw.name === "string" ? raw.name : "image",
+        path: typeof raw.path === "string" ? raw.path : (raw.name || ""),
+        mime: typeof raw.mime === "string" ? raw.mime : "image/png",
+        width: Math.max(0, clampNumber(raw.width, 0, 0, 1e6)),
+        height: Math.max(0, clampNumber(raw.height, 0, 0, 1e6)),
+        blob: blob,
+        url: blob ? URL.createObjectURL(blob) : null,
+        missing: !blob,
+      });
+    }
+
+    await loadDocument(doc, { assets: assets, silent: true });
+    layoutDirty = false;
+    return true;
+  }
+
+  /* ---------- loading a document into the board ---------- */
 
   function clampNumber(value, fallback, lo, hi) {
     const n = Number(value);
@@ -234,12 +645,6 @@
     return base;
   }
 
-  /* ---------- loading a document into the board ---------- */
-
-  function missingAssetsOf(restored) {
-    return restored.filter(function (asset) { return asset.missing; });
-  }
-
   async function loadDocument(doc, options) {
     const opts = options || {};
     if (!doc || typeof doc !== "object") throw new Error("That file is not a Magnet Napkin project.");
@@ -253,13 +658,9 @@
       return { missing: [], skipped: true };
     }
 
-    /* Assets already in the tray keep their blobs; assets in the file that
-       are embedded are decoded; the rest are reported as missing. */
     const existing = new Map();
     for (const asset of state.assets) existing.set(asset.id, asset);
 
-    /* Assets prepared by the caller (the autosave restore path) carry their
-       blob with them and are taken as they are. */
     const prepared = new Map();
     if (opts.assets) {
       for (const asset of opts.assets) prepared.set(asset.id, asset);
@@ -298,13 +699,14 @@
     state.notes = (doc.notes || []).map(normaliseNote).filter(Boolean);
     state.projectName = typeof doc.name === "string" ? doc.name : "Magnet Napkin board";
     state.selection = null;
+    if (doc.view) applyViewState(doc.view);
 
     S.resetHistory();
     S.emit("change", { label: "open project" });
     MN.assets.renderTray();
     MN.stage.applyView();
 
-    const missing = missingAssetsOf(restored);
+    const missing = restored.filter(function (asset) { return asset.missing; });
     if (missing.length && !opts.silent) MN.project.showMissing(missing);
     return { missing: missing };
   }
@@ -312,7 +714,7 @@
   /* ---------- saving and opening files ---------- */
 
   async function saveFile(embedImages) {
-    const doc = embedImages ? await documentWithImages() : documentOf();
+    const doc = embedImages ? await documentWithImages() : exportDocument();
     const text = JSON.stringify(doc, null, 2);
     const name = (state.projectName || "board").replace(/[^\w.-]+/g, "-").toLowerCase() + ".napkin.json";
     core.downloadText(text, name, "application/json");
@@ -327,83 +729,52 @@
     } catch (err) {
       throw new Error("That file could not be read as JSON.");
     }
-    return loadDocument(doc);
+    const result = await loadDocument(doc);
+    layoutDirty = true;
+    return result;
   }
 
-  /* ---------- autosave ---------- */
+  /* ---------- recovery ---------- */
 
-  async function persist() {
-    const doc = documentOf();
-    await idbPut(STORE_PROJECT, CURRENT, doc);
-    for (const asset of state.assets) {
-      if (asset.blob) await idbPut(STORE_BLOBS, asset.id, asset.blob);
-    }
-    /* Blobs of assets that are gone. */
-    const live = new Set(state.assets.map(function (a) { return a.id; }));
-    const keys = await withStore(STORE_BLOBS, "readonly", function (store) { return store.getAllKeys(); });
-    for (const key of keys || []) {
-      if (!live.has(key)) await idbDelete(STORE_BLOBS, key);
-    }
+  /* Restoring is not destructive: the board being replaced goes into the
+     history first, so it can be restored again. */
+  async function restoreEntry(id) {
+    const entries = await listHistory();
+    const entry = entries.find(function (e) { return e.id === id; });
+    if (!entry) throw new Error("That snapshot is gone.");
+    await writeHistory(documentOf(), "before restore");
+    await loadDocument(entry.doc, { silent: true });
+    layoutDirty = true;
+    conflict = null;
+    otherTabUpdated = false;
+    S.emit("conflict", null);
+    MN.app.setStatus("Restored the board from " + clock(entry.at) + ".");
+    return entry;
   }
 
-  function scheduleAutosave() {
-    if (autosaveTimer) clearTimeout(autosaveTimer);
-    autosaveTimer = setTimeout(function () {
-      autosaveTimer = null;
-      if (MN.interact.isDragging()) {
-        scheduleAutosave();
-        return;
-      }
-      persist().catch(function (err) {
-        lastError = err;
-        showStorageWarning(err);
-      });
-    }, 500);
-  }
-
-  async function restoreProject() {
-    const doc = await idbGet(STORE_PROJECT, CURRENT);
-    if (!doc) return false;
-
-    /* If the board was touched while the stored project was being read —
-       a big folder of images takes a moment — the restore is dropped rather
-       than allowed to wipe what the user just did. */
-    if (state.items.length || state.notes.length || state.assets.length) return false;
-
-    const assets = [];
-    for (const raw of doc.assets || []) {
-      const id = typeof raw.id === "string" ? raw.id : core.uid("a");
-      let blob = null;
-      try {
-        blob = await idbGet(STORE_BLOBS, id);
-      } catch (err) {
-        blob = null;
-      }
-      assets.push({
-        id: id,
-        name: typeof raw.name === "string" ? raw.name : "image",
-        path: typeof raw.path === "string" ? raw.path : (raw.name || ""),
-        mime: typeof raw.mime === "string" ? raw.mime : "image/png",
-        width: Math.max(0, clampNumber(raw.width, 0, 0, 1e6)),
-        height: Math.max(0, clampNumber(raw.height, 0, 0, 1e6)),
-        blob: blob,
-        url: blob ? URL.createObjectURL(blob) : null,
-        missing: !blob,
-      });
+  /* Take the board the other tab saved. */
+  async function reloadStored() {
+    conflict = null;
+    otherTabUpdated = false;
+    S.emit("conflict", null);
+    const ok = await restoreProject();
+    if (ok) {
+      MN.assets.renderTray();
+      MN.stage.applyView();
+      MN.app.setStatus("Reloaded the board saved by the other tab.");
     }
-    const restored = Object.assign({}, doc, { assets: assets });
-    await loadDocument(restored, { silent: true, assets: assets, restore: true });
-    return true;
+    return ok;
   }
 
   async function clearStored() {
-    await idbClear(STORE_PROJECT);
-    await idbClear(STORE_BLOBS);
+    await idbClear(DB_MAIN, STORE_PROJECT);
+    await idbClear(DB_META, STORE_HISTORY);
+    await idbClear(DB_META, STORE_VIEW);
+    loadedRev = 0;
+    layoutDirty = false;
   }
 
   /* ---------- the storage warning ---------- */
-
-  let warned = false;
 
   function showStorageWarning(err) {
     if (warned) return;
@@ -436,7 +807,6 @@
   }
 
   function relink(assets) {
-    /* Match the missing assets to the files just imported, by file name. */
     const byName = new Map();
     for (const asset of state.assets) {
       if (asset.blob) byName.set(asset.name.toLowerCase(), asset);
@@ -460,6 +830,7 @@
   /* ---------- boot ---------- */
 
   async function boot() {
+    setupChannel();
     let restored = false;
     try {
       restored = await restoreProject();
@@ -471,27 +842,20 @@
       MN.stage.applyView();
       MN.app.setStatus("Restored your last board from this browser.");
     }
-    S.on("change", function () {
+
+    /* Only a layout change makes the board worth writing. */
+    S.on("change", function (event) {
+      layoutDirty = true;
       scheduleAutosave();
     });
 
-    /* When a folder arrives after a project was opened, try to match the
-       files that were missing. */
-    S.on("assets-imported", function () {
-      if (!pendingMissing.length) return;
-      const linked = relink(pendingMissing);
-      pendingMissing = pendingMissing.filter(function (asset) { return asset.missing; });
-      if (linked) {
-        const dialog = core.$("#missing-dialog");
-        if (dialog && dialog.open) dialog.close();
-      }
-    });
+    scheduleRolling();
 
     if (location.protocol === "file:") {
       /* Chrome cannot autosave here. Check whether IndexedDB really works
          before saying so. */
       try {
-        await openDb();
+        await openDb(DB_MAIN, MAIN_STORES);
       } catch (err) {
         showStorageWarning(err);
       }
@@ -500,8 +864,10 @@
 
   MN.project = {
     FORMAT: FORMAT,
+    tabId: tabId,
     boot: boot,
     documentOf: documentOf,
+    exportDocument: exportDocument,
     documentWithImages: documentWithImages,
     loadDocument: loadDocument,
     openFile: openFile,
@@ -510,6 +876,16 @@
     showMissing: showMissing,
     relink: relink,
     scheduleAutosave: scheduleAutosave,
+    touchView: touchView,
+    persist: persist,
+    listHistory: listHistory,
+    restoreEntry: restoreEntry,
+    reloadStored: reloadStored,
+    checkForNewer: checkForNewer,
+    getConflict: function () { return conflict; },
+    getOtherTabUpdated: function () { return otherTabUpdated; },
+    clearConflict: function () { conflict = null; otherTabUpdated = false; },
+    markDirty: function () { layoutDirty = true; },
   };
 
   if (document.readyState === "loading") {

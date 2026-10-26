@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Magnet Napkin — persistence test</title>
+<style>
+  body { font: 13px/1.5 ui-monospace, Menlo, monospace; margin: 0; padding: 12px; background: #fff; color: #111; }
+  h1 { font-size: 14px; margin: 0 0 8px; }
+  #out { white-space: pre-wrap; }
+  .pass { color: #0a6b28; }
+  .fail { color: #b00020; font-weight: 700; }
+  .frames { position: absolute; left: -99999px; width: 1200px; height: 800px; }
+</style>
+</head>
+<body>
+<h1>Magnet Napkin — two-tab persistence test</h1>
+<div id="out">running…</div>
+<iframe class="frames" id="tabA" src="/index.html"></iframe>
+<iframe class="frames" id="tabB" src="/index.html"></iframe>
+<img src="/__hold?seconds=25" alt="" style="position:absolute;left:-99999px">
+<script>
+const lines = [];
+let failures = 0;
+
+function log(name, ok, detail) {
+  if (!ok) failures += 1;
+  lines.push((ok ? "PASS " : "FAIL ") + name + (detail ? "  [" + detail + "]" : ""));
+}
+
+function report() {
+  document.getElementById("out").innerHTML =
+    lines.map(function (l) {
+      const cls = l.startsWith("FAIL") ? "fail" : "pass";
+      return '<span class="' + cls + '">' + l.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</span>";
+    }).join("\n") +
+    "\n\n" + (failures === 0 ? "ALL PASS" : failures + " FAILURE(S)") +
+    "\nUA: " + navigator.userAgent;
+  document.title = failures === 0 ? "TEST PASS" : "TEST FAIL " + failures;
+  try {
+    fetch("/__result", { method: "POST", body: lines.join("\n") + "\n" + (failures === 0 ? "ALL PASS" : failures + " FAILURE(S)") });
+  } catch (err) { /* the report is in the page too */ }
+}
+
+const wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+function readCurrent(frame) {
+  const w = frame.contentWindow;
+  return new Promise(function (resolve) {
+    const request = w.indexedDB.open("magnet-napkin");
+    request.onsuccess = function () {
+      const db = request.result;
+      const tx = db.transaction("project", "readonly");
+      const get = tx.objectStore("project").get("CURRENT");
+      get.onsuccess = function () { resolve(get.result || null); };
+      get.onerror = function () { resolve(null); };
+    };
+    request.onerror = function () { resolve(null); };
+  });
+}
+
+(async function () {
+  const A = document.getElementById("tabA");
+  const B = document.getElementById("tabB");
+  const wA = A.contentWindow;
+  const wB = B.contentWindow;
+
+  /* A clean store, and both tabs open before anything is saved. */
+  for (const name of ["magnet-napkin", "magnet-napkin-meta"]) {
+    await new Promise(function (resolve) {
+      const request = indexedDB.deleteDatabase(name);
+      let done = false;
+      const finish = function () { if (!done) { done = true; resolve(); } };
+      request.onsuccess = finish;
+      request.onerror = finish;
+      request.onblocked = finish;
+      /* Another tab may hold the database open, and then the delete never
+         completes. Do not wait for it forever. */
+      setTimeout(finish, 2000);
+    });
+  }
+  A.src = "/index.html";
+  B.src = "/index.html";
+  await wait(1500);
+  A.src = "/index.html";
+  B.src = "/index.html";
+  await wait(2000);
+
+  try {
+    /* 1. Tab A has a populated board. */
+    wA.MN.interact.placeText("Tab A board");
+    await wait(1400);
+
+    const storedA = await readCurrent(A);
+    log("tab A saved its board", !!(storedA && storedA.doc && storedA.doc.items.length === 1),
+      storedA ? "items=" + storedA.doc.items.length + " rev=" + storedA.rev : "nothing stored");
+
+    /* 2. Tab B opened before that, so it is stale. */
+    log("tab B is stale", wB.MN.state.state.items.length === 0,
+      "items=" + wB.MN.state.state.items.length);
+
+    /* 3. Tab B changes the zoom and saves: a view-only change. */
+    wB.MN.stage.setZoom(0.5);
+    await wait(1400);
+
+    /* 4. Tab A's board must still be intact. */
+    const storedAfterB = await readCurrent(A);
+    const text = storedAfterB && storedAfterB.doc.items.length
+      ? (storedAfterB.doc.items[0].text || "") : "";
+    log("tab A's board survived tab B's view save",
+      !!(storedAfterB && storedAfterB.doc.items.length === 1 && text.indexOf("Tab A board") >= 0),
+      "items=" + (storedAfterB ? storedAfterB.doc.items.length : 0) + " text=" + text);
+    log("the view save did not become a layout write",
+      !!(storedAfterB && storedAfterB.rev === storedA.rev),
+      "rev " + (storedA ? storedA.rev : "?") + " -> " + (storedAfterB ? storedAfterB.rev : "?"));
+
+    /* 5. Tab A saw a cross-tab notice. */
+    log("tab A was told about the other tab", wA.MN.project.getOtherTabUpdated() === true);
+
+    /* 6. The history holds the populated state and it can be restored. */
+    const history = await wA.MN.project.listHistory();
+    const populated = history.filter(function (e) { return e.itemCount > 0; });
+    log("the history holds the populated board", populated.length > 0,
+      history.length + " snapshots, " + populated.length + " with items");
+
+    await wA.MN.project.restoreEntry(populated[0].id);
+    await wait(600);
+    log("a snapshot can be restored", wA.MN.state.state.items.length === 1,
+      "items=" + wA.MN.state.state.items.length);
+
+    /* 7. The second tab now edits the layout: it must be stopped, because
+          the stored board is newer than the one it loaded. */
+    const storedNow = await readCurrent(A);
+    wB.MN.state.state.items.push(wB.MN.state.newTextItem("Tab B board"));
+    wB.MN.state.commit("tab B edit");
+    await wait(1400);
+    const storedAfterConflict = await readCurrent(A);
+    log("the stale tab did not overwrite the newer board",
+      !!(storedAfterConflict && storedAfterConflict.doc.items.length === 1 &&
+        (storedAfterConflict.doc.items[0].text || "").indexOf("Tab A board") >= 0),
+      "items=" + (storedAfterConflict ? storedAfterConflict.doc.items.length : 0) +
+        " rev=" + (storedNow ? storedNow.rev : "?") + " -> " + (storedAfterConflict ? storedAfterConflict.rev : "?"));
+    log("the stale tab was told to stop", wB.MN.project.getConflict() !== null);
+
+    /* 8. An empty board must not overwrite a populated one. */
+    const emptyWindow = document.createElement("iframe");
+    emptyWindow.className = "frames";
+    document.body.appendChild(emptyWindow);
+    emptyWindow.src = "/index.html";
+    await wait(1800);
+    emptyWindow.contentWindow.MN.state.state.items.length = 0;
+    emptyWindow.contentWindow.MN.state.state.notes.length = 0;
+    emptyWindow.contentWindow.MN.state.commit("empty board");
+    await wait(1400);
+    const storedAfterEmpty = await readCurrent(A);
+    log("an empty board did not overwrite the stored one",
+      !!(storedAfterEmpty && storedAfterEmpty.doc.items.length === 1),
+      "items=" + (storedAfterEmpty ? storedAfterEmpty.doc.items.length : 0));
+  } catch (err) {
+    log("unexpected error", false, err && err.message ? err.message : String(err));
+  }
+
+  report();
+})();
+</script>
+</body>
+</html>

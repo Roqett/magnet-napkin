@@ -92,7 +92,7 @@
   }
 
   function downloadJson() {
-    const doc = MN.project.documentOf();
+    const doc = MN.project.exportDocument();
     core.downloadText(JSON.stringify(doc, null, 2), "layout.json", "application/json");
     return { name: "layout.json" };
   }

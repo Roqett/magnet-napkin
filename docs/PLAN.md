@@ -339,6 +339,34 @@ The light palette is still in the stylesheet under `[data-theme="light"]`, one
 attribute away from being used. `prefers-reduced-transparency` turns the
 glass off and leaves plain panels.
 
+### The board had to survive more than one tab
+
+The owner lost a real 34-magnet Redline layout to three tabs sharing one
+`localStorage` key, with the empty tab saving last. The requirement that came
+out of it is in `docs/AUTOSAVE_AND_RECOVERY.md`, and it changed the storage
+layer:
+
+- **Versioned snapshots.** A `history` store keeps the last 50 versions of the
+  board, one per commit plus a checkpoint every minute, capped by size as
+  well as count. The **History** button lists them and restores any one.
+- **A second tab cannot overwrite you.** Each tab has an identity and
+  announces its saves over `BroadcastChannel`, with a `localStorage` ping and
+  a `visibilitychange` check as fallbacks. A tab that hears another tab save
+  says so and offers to reload or to keep writing. A tab whose stored board
+  is newer than the one it loaded stops and asks.
+- **An empty board never replaces a full one.** The save is refused and the
+  status line says why, unless the user asked for it with **New**.
+- **View state is separate.** The zoom, the grid, the snap, the asset ratio
+  and the underlay live in their own store, so moving the zoom can never
+  rewrite the layout.
+- **A second database for the new stores.** Raising the version of a database
+  blocks every other tab still holding it open, and a blocked upgrade leaves
+  those tabs unable to read or write at all. The history and the view state
+  went into their own database so no migration can ever strand an open tab.
+
+`tests/persistence.html` is the two-tab acceptance test from that document. It
+passes in Chrome 152 and Firefox 156.
+
 ### What is verified, and how
 
 | Claim | Evidence |

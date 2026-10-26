@@ -53,7 +53,6 @@
     const next = core.clamp(zoom, MIN_ZOOM, MAX_ZOOM);
     if (next === state.view.zoom) return;
     const previous = state.view.zoom;
-
     if (anchor) {
       /* Keep the point under the cursor still. */
       const rect = boardEl.getBoundingClientRect();
@@ -69,6 +68,9 @@
     } else {
       state.view.zoom = next;
     }
+    /* The zoom is view state: it is saved on its own, never as part of the
+       layout. */
+    if (MN.project && MN.project.touchView) MN.project.touchView();
     applyView();
   }
 

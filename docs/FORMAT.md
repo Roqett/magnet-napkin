@@ -100,6 +100,13 @@ A project file is a normal JSON file. It holds the canvas, the assets it refers 
 
 **`canvas.underlay`** is a faint reference image *under* the artwork, for tracing a layout against the real thing: an asset id and an opacity between 0.05 and 1. Like the grid and the guides, it is an editor aid — **it is never drawn into the exported PNG**. `assetId: null` means no underlay.
 
+**View state lives apart from the layout.** The file carries the underlay, but
+in the browser the zoom, the grid, the snap, the asset ratio and the underlay
+are saved separately from the board. That is deliberate: a view change must
+never rewrite the layout, because a tab that is behind might otherwise
+overwrite a board it has never seen. See
+[AUTOSAVE_AND_RECOVERY.md](AUTOSAVE_AND_RECOVERY.md).
+
 **Unknown fields are ignored.** Numbers out of range are clamped, unknown kinds fall back to `image`, and a missing field takes its default. A file from a newer version still opens.
 
 **`targetId`** on a note is optional. It names the item a note is about, and it shows up in `notes.md` as `[name]`. Nothing is drawn on the canvas for it in this version.

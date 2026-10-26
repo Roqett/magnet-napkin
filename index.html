@@ -62,6 +62,7 @@
       <button type="button" data-act="new" title="Clear the board">New</button>
       <button type="button" data-act="save" title="Download the project as .napkin.json">Save</button>
       <button type="button" data-act="open" title="Open a .napkin.json project">Open</button>
+      <button type="button" data-act="history" title="Recover an earlier version of this board">History</button>
       <button type="button" data-act="exportpng" class="primary" title="Export the clean PNG — no notes, no UI">PNG</button>
       <select id="export-tier" aria-label="Export size">
         <option value="1">1×</option>
@@ -121,6 +122,25 @@
   <b>Autosave is not available here.</b>
   <span id="storage-warning-detail"></span>
 </div>
+
+<div id="conflict-banner" hidden role="alert">
+  <b id="conflict-title">This board was updated in another tab.</b>
+  <span id="conflict-detail"></span>
+  <span class="conflict-actions">
+    <button type="button" id="conflict-reload">Reload</button>
+    <button type="button" id="conflict-overwrite" class="quiet">Keep mine</button>
+    <button type="button" id="conflict-dismiss" class="quiet">Dismiss</button>
+  </span>
+</div>
+
+<dialog id="history-dialog" aria-labelledby="history-title">
+  <h2 id="history-title">History</h2>
+  <p class="muted">Every change to the board is snapshotted. Restoring one keeps the board you have now in the history too.</p>
+  <div id="history-list" class="history-list"></div>
+  <div class="handoff-actions">
+    <button type="button" id="close-history" class="quiet">Close</button>
+  </div>
+</dialog>
 
 <dialog id="handoff-dialog" aria-labelledby="handoff-title">
   <h2 id="handoff-title">Handoff</h2>

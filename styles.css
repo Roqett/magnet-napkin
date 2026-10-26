@@ -662,6 +662,50 @@ body.dropping::after {
 }
 #storage-warning b { color: #fff3b0; }
 
+#conflict-banner {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 41;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #10233f;
+  color: #cfe0ff;
+  border-top: 1px solid #2b4a7d;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#conflict-banner b { color: #ffffff; }
+#conflict-banner[hidden] { display: none; }
+.conflict-actions { margin-left: auto; display: flex; gap: 6px; flex: none; }
+
+.history-list {
+  max-height: 320px;
+  overflow: auto;
+  margin: 12px 0;
+  border: 1px solid var(--control-line);
+  border-radius: 10px;
+}
+.history-list:empty::after {
+  content: "No snapshots yet.";
+  display: block;
+  padding: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.history-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--control-line);
+}
+.history-entry:last-child { border-bottom: 0; }
+.history-entry .when { font-variant-numeric: tabular-nums; }
+.history-entry .what { color: var(--muted); font-size: 11px; flex: 1; }
+.history-entry button { flex: none; padding: 3px 8px; font-size: 11px; }
+
 /* ---------- handoff dialog ---------- */
 
 dialog {

@@ -85,6 +85,7 @@
       const v = Math.max(0.0001, core.num(gridInput.value));
       state.view.gridSize = v;
       MN.stage.applyView();
+      MN.project.touchView();
       MN.app.setStatus("Grid step: " + MN.units.format(v, state.canvas.unit));
     });
     frag.appendChild(row("Grid", gridInput, unitLabel()));
@@ -95,6 +96,7 @@
     ratioInput.addEventListener("change", function () {
       const v = Math.max(0.25, core.num(ratioInput.value));
       state.view.assetScale = v;
+      MN.project.touchView();
       MN.app.setStatus("Newly placed assets will come in at " +
         core.fmtNum(v, 2) + "× their pixel size.");
     });
@@ -165,7 +167,9 @@
       state.canvas.underlay = state.canvas.underlay || { assetId: null, opacity: 0.25 };
       state.canvas.underlay.assetId = underlaySelect.value || null;
       MN.stage.applyUnderlay();
-      S.commit("underlay");
+      /* The underlay is view state: it is saved on its own and never
+         rewrites the layout. */
+      MN.project.touchView();
     });
     frag.appendChild(row("Underlay", underlaySelect));
 
@@ -184,7 +188,7 @@
         opacityValue.textContent = Math.round(state.canvas.underlay.opacity * 100) + "%";
         MN.stage.applyUnderlay();
       });
-      opacity.addEventListener("change", function () { S.commit("underlay opacity"); });
+      opacity.addEventListener("change", function () { MN.project.touchView(); });
       frag.appendChild(core.el("div", { class: "field" }, [
         core.el("label", { text: "Strength" }), opacity, opacityValue,
       ]));

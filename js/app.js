@@ -157,6 +157,7 @@
     core.$("#gridToggle").addEventListener("change", function (e) {
       state.view.grid = e.target.checked;
       MN.stage.applyView();
+      MN.project.touchView();
     });
     core.$("#snapToggle").addEventListener("change", function (e) {
       state.view.snap = e.target.checked;
@@ -166,21 +167,22 @@
     });
   }
 
-  /* ---------- history wiring (available from the start) ---------- */
-
   /* ---------- project actions ---------- */
 
   function wireProjectActions() {
     core.$('[data-act="new"]').addEventListener("click", function () {
       if (state.items.length || state.notes.length) {
-        const ok = window.confirm("Clear the board? The imported images stay in the tray.");
+        const ok = window.confirm("Clear the board? The imported images stay in the tray, and the board you have now is kept in the history.");
         if (!ok) return;
       }
       state.items.length = 0;
       state.notes.length = 0;
       state.selection = null;
       S.commit("new board");
-      MN.project.clearStored().catch(function () { /* nothing stored yet */ });
+      /* The user asked for an empty board, so the empty board is allowed to
+         replace the stored one. The old board is in the history. */
+      MN.project.persist({ explicit: true, allowEmpty: true, label: "new board" })
+        .catch(function () { /* the storage warning says it */ });
       setStatus("Board cleared. The images are still in the tray.");
     });
 
@@ -228,7 +230,7 @@
     core.$("#dismiss-missing").addEventListener("click", function () { missingDialog.close(); });
   }
 
-  function wireHistory() {
+  function wireShortcuts() {
     core.$('[data-act="undo"]').addEventListener("click", function () {
       if (S.undo()) setStatus("Undone");
     });
@@ -249,8 +251,6 @@
       }
     });
   }
-
-  /* ---------- boot ---------- */
 
   /* ---------- the handoff ---------- */
 
@@ -299,6 +299,91 @@
     });
   }
 
+  /* ---------- history and recovery ---------- */
+
+  function clockText(at) {
+    const d = new Date(at);
+    const pad = function (n) { return String(n).padStart(2, "0"); };
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) +
+      " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+  }
+
+  function wireHistory() {
+    const dialog = core.$("#history-dialog");
+    const list = core.$("#history-list");
+
+    core.$('[data-act="history"]').addEventListener("click", function () {
+      MN.project.listHistory().then(function (entries) {
+        list.textContent = "";
+        for (const entry of entries) {
+          const row = core.el("div", { class: "history-entry" }, [
+            core.el("span", { class: "when", text: clockText(entry.at) }),
+            core.el("span", {
+              class: "what",
+              text: entry.label + " · " + entry.itemCount + " item" + (entry.itemCount === 1 ? "" : "s") +
+                ", " + entry.noteCount + " note" + (entry.noteCount === 1 ? "" : "s"),
+            }),
+          ]);
+          const restore = core.el("button", { type: "button", text: "Restore" });
+          restore.addEventListener("click", function () {
+            MN.project.restoreEntry(entry.id).then(function () {
+              dialog.close();
+            }).catch(function (err) {
+              window.alert(err && err.message ? err.message : "That snapshot could not be restored.");
+            });
+          });
+          row.appendChild(restore);
+          list.appendChild(row);
+        }
+        if (dialog && typeof dialog.showModal === "function") dialog.showModal();
+      });
+    });
+
+    core.$("#close-history").addEventListener("click", function () { dialog.close(); });
+  }
+
+  /* ---------- another tab ---------- */
+
+  function wireConflict() {
+    const banner = core.$("#conflict-banner");
+    const title = core.$("#conflict-title");
+    const detail = core.$("#conflict-detail");
+
+    function show(info) {
+      if (!banner) return;
+      if (!info) {
+        banner.hidden = true;
+        return;
+      }
+      banner.hidden = false;
+      title.textContent = info.rev
+        ? "Another tab saved a newer board."
+        : "This board was updated in another tab.";
+      detail.textContent = info.rev
+        ? "The other tab's board has " + info.itemCount + " item" + (info.itemCount === 1 ? "" : "s") +
+          ". Nothing has been overwritten. Reload to take it, or keep writing over it."
+        : "Nothing has been overwritten. Reload to see the other tab's board.";
+    }
+
+    S.on("conflict", show);
+    S.on("cross-tab", function () {
+      if (MN.project.getConflict()) return;
+      show({ rev: 0 });
+    });
+
+    core.$("#conflict-reload").addEventListener("click", function () {
+      MN.project.reloadStored().then(function () { show(null); });
+    });
+    core.$("#conflict-overwrite").addEventListener("click", function () {
+      MN.project.persist({ overwrite: true, force: true, label: "overwrite" }).then(function () {
+        show(null);
+      });
+    });
+    core.$("#conflict-dismiss").addEventListener("click", function () {
+      show(null);
+    });
+  }
+
   function boot() {
     applyCapabilities();
     renderCanvasControls();
@@ -307,7 +392,9 @@
     wireViewControls();
     wireProjectActions();
     wireHandoff();
+    wireShortcuts();
     wireHistory();
+    wireConflict();
     S.resetHistory();
     S.on("change", function () {
       updateEmptyState();
