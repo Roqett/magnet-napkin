@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Napkinetic — blocks</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #090b10; overflow: hidden; }
+  iframe { display: block; width: 1300px; height: 780px; border: 0; }
+</style>
+</head>
+<body>
+<img src="/__hold?seconds=10" alt="" style="position:absolute;left:-99999px">
+<iframe id="app" style="display:none"></iframe>
+<script>
+const frame = document.getElementById("app");
+/* Clear the stored project without deleting the database: a delete is blocked
+   by the app's own open connection, and a pending delete stops every later
+   open from completing. */
+function clearStore() {
+  return new Promise(function (resolve) {
+    let settled = false;
+    const finish = function () { if (!settled) { settled = true; resolve(); } };
+    const request = indexedDB.open("napkinetic");
+    request.onsuccess = function () {
+      const db = request.result;
+      const names = Array.from(db.objectStoreNames);
+      if (!names.length) { finish(); return; }
+      const tx = db.transaction(names, "readwrite");
+      for (const name of names) tx.objectStore(name).clear();
+      tx.oncomplete = finish;
+      tx.onerror = finish;
+    };
+    request.onerror = finish;
+    request.onblocked = finish;
+    setTimeout(finish, 2000);
+  });
+}
+
+clearStore().then(function () { frame.src = "/index.html"; });
+
+frame.addEventListener("load", async function () {
+  const w = frame.contentWindow;
+  await new Promise(function (r) { setTimeout(r, 1200); });
+  const S = w.MN.state;
+  const state = S.state;
+  state.items.length = 0; state.notes.length = 0;
+  state.projectName = "Landing page";
+  state.canvas.width = 700; state.canvas.height = 460; state.canvas.scale = 1;
+  state.canvas.background = { type: "color", value: "#111318" };
+  state.view.zoom = 0.62; state.view.grid = false;
+
+  const button = w.MN.interact.placeBlock("button");
+  button.x = 40; button.y = 60; button.w = 110; button.h = 34; button.text = "Get started";
+  const image = w.MN.interact.placeBlock("image");
+  image.x = 170; image.y = 50; image.w = 200; image.h = 130; image.text = "Hero image";
+  const headline = w.MN.interact.placeText("Ship it faster");
+  headline.x = 40; headline.y = 210; headline.w = 300; headline.fontSize = 26;
+  headline.fontWeight = 700; headline.color = "#e8eef8";
+  w.MN.items.syncTextHeight(headline);
+  const sub = w.MN.interact.placeText("Everything on the board is a placeholder.");
+  sub.x = 40; sub.y = 248; sub.w = 300; sub.fontSize = 12; sub.color = "#8a94a8";
+  w.MN.items.syncTextHeight(sub);
+  const spacer = w.MN.interact.placeBlock("spacer");
+  spacer.x = 40; spacer.y = 280; spacer.w = 330; spacer.h = 40;
+  const lamp = w.MN.interact.placeBlock("lamp");
+  lamp.x = 40; lamp.y = 340; lamp.w = 90; lamp.h = 22; lamp.text = "HEALTHY";
+  const dot = w.MN.interact.placeBlock("dot");
+  dot.x = 150; dot.y = 344; dot.w = 14; dot.h = 14;
+  const highlight = w.MN.interact.placeBlock("highlight");
+  highlight.x = 420; highlight.y = 60; highlight.w = 220; highlight.h = 120;
+
+  const symbol = state.assets.find(function (a) { return a.id === "sym-gauge"; });
+  const gauge = w.MN.interact.placeAsset(symbol, 430, 220);
+  gauge.w = 96; gauge.h = 96;
+  const discord = state.assets.find(function (a) { return a.id === "sym-discord"; });
+  const d = w.MN.interact.placeAsset(discord, 545, 230);
+  d.w = 44; d.h = 44;
+
+  S.commit("blocks");
+  w.MN.stage.applyView();
+  const viewport = frame.contentDocument.querySelector("#viewport");
+  viewport.scrollLeft = 0; viewport.scrollTop = 0;
+  frame.style.display = "block";
+  document.title = "READY";
+});
+</script>
+</body>
+</html>

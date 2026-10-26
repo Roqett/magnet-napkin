@@ -230,6 +230,34 @@
     return parts.join("/") || "Loose files";
   }
 
+  /* The blocks: drop one in to say what belongs there. */
+  function renderBlocks() {
+    const wrap = core.$("#tray-blocks");
+    if (!wrap) return;
+    wrap.textContent = "";
+    wrap.appendChild(core.el("div", { class: "group", text: "Blocks" }));
+    const row = core.el("div", { class: "block-row" });
+    for (const spec of S.SHAPES) {
+      const button = core.el("button", {
+        type: "button",
+        class: "block-button",
+        title: spec.label,
+        "aria-label": "Add a " + spec.label + " block",
+      });
+      const preview = core.el("span", { class: "block-preview" });
+      preview.style.background = spec.fill === "transparent" ? "transparent" : spec.fill;
+      preview.style.borderColor = spec.border;
+      preview.style.borderStyle = spec.dashed ? "dashed" : "solid";
+      button.appendChild(preview);
+      button.appendChild(core.el("span", { class: "block-label", text: spec.label }));
+      button.addEventListener("click", function () {
+        MN.interact.placeBlock(spec.id);
+      });
+      row.appendChild(button);
+    }
+    wrap.appendChild(row);
+  }
+
   function renderTray() {
     if (!trayEl) return;
     trayEl.textContent = "";
@@ -276,6 +304,7 @@
         : "";
     }
     if (trayEmptyEl) trayEmptyEl.hidden = state.assets.length > 0;
+    renderBlocks();
   }
 
   function filterTray(query) {

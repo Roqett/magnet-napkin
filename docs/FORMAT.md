@@ -86,6 +86,16 @@ A project file is a normal JSON file. It holds the canvas, the assets it refers 
 
 **`items` is the design content.** Array order is the z-order, last on top. There is no separate `z` field.
 
+Three kinds of item:
+
+| `kind` | What it is |
+|---|---|
+| `image` | a picture from `assets` |
+| `text` | a text box |
+| `shape` | a block: a placeholder that says what goes there |
+
+A block carries `shape` (which block it is), `text`, `fill`, `border`, `color` and `borderWidth`, and it is drawn as a filled, bordered box with the text centred in it. `fontSize` of `0` means the text follows the block's height. The editor and the PNG draw it identically.
+
 **`notes` is a separate array and is never merged into `items`.** This is the contract with whatever consumes the file. A note is commentary; it is never artwork. The two arrays stay apart on disk, in the editor and in the export.
 
 **A note never reaches the clean PNG.** `includeInCleanPNG` exists in the format for forward compatibility and is always written as `false`. The clean PNG contains design content only, always.
@@ -120,7 +130,7 @@ Text items carry their own font settings, and the same settings drive the screen
 | `fontFamily` | one of `system-ui`, `Georgia`, `Menlo`, `Arial Narrow`, `Helvetica Neue` |
 | `fontSize` | in canvas units |
 | `fontWeight` | 100 to 900 |
-| `color` | any CSS colour |
+| `color` | any CSS colour — always a plain hex, so an agent can reproduce it exactly |
 | `background` | `transparent` or a colour |
 | `align` | `left`, `center` or `right` |
 | `autoHeight` | when true, `h` follows the content and `w` is the wrap width |

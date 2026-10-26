@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>boot probe</title>
+</head>
+<body>
+<pre id="out">…</pre>
+<img src="/__hold?seconds=8" alt="" style="position:absolute;left:-99999px">
+<iframe id="app" style="width:1200px;height:700px;border:0"></iframe>
+<script>
+const frame = document.getElementById("app");
+const log = [];
+function say(line) {
+  log.push(line);
+  document.getElementById("out").textContent = log.join("\n");
+}
+
+/* Listen before the frame loads, or a module level error in the app is
+   missed. */
+frame.contentWindow.addEventListener("error", function (e) {
+  say("ERROR: " + e.message + " @ " + e.filename + ":" + e.lineno);
+});
+frame.contentWindow.addEventListener("unhandledrejection", function (e) {
+  say("REJECTION: " + e.reason);
+});
+
+frame.addEventListener("load", function () {
+  const w = frame.contentWindow;
+  for (let i = 0; i < 12; i++) {
+    setTimeout(function () {
+      const state = w.MN && w.MN.state ? w.MN.state.state : null;
+      say((i * 250) + "ms: assets=" + (state ? state.assets.length : "?") +
+        " symbols=" + (state ? state.assets.filter(function (a) { return a.id && a.id.indexOf("sym-") === 0; }).length : "?") +
+        " warning=" + (w.document.querySelector("#storage-warning") ? !w.document.querySelector("#storage-warning").hidden : "?"));
+    }, i * 250);
+  }
+});
+
+frame.src = "/index.html";
+</script>
+</body>
+</html>

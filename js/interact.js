@@ -56,6 +56,21 @@
     return { x: c.width / 2, y: c.height / 2 };
   }
 
+  /* A block: a placeholder that says what goes here. */
+  function placeBlock(shapeId) {
+    const item = S.newShapeItem(shapeId);
+    const centre = canvasCentre();
+    item.x = centre.x - item.w / 2;
+    item.y = centre.y - item.h / 2;
+    clampItem(item);
+    state.items.push(item);
+    S.commit("add block");
+    S.select("item", item.id);
+    MN.app.setStatus("Added a " + S.shapeSpec(shapeId).label + " block.");
+    setTimeout(function () { MN.inspector.focusField("shape-text"); }, 0);
+    return item;
+  }
+
   /* ---------- text ---------- */
 
   function placeText(text) {
@@ -355,6 +370,7 @@
     placeAsset: placeAsset,
     placeText: placeText,
     placeNote: placeNote,
+    placeBlock: placeBlock,
     clampItem: clampItem,
     naturalSize: naturalSize,
     isDragging: function () { return !!drag; },

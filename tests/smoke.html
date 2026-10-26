@@ -59,6 +59,11 @@ frame.addEventListener("load", async function () {
   /* Let the app settle: the autosave restore reads the stored project, and
      it has to finish before the test starts or it lands in the middle. */
   await new Promise(function (r) { setTimeout(r, 900); });
+  /* The symbol library is installed after the restore. */
+  for (let i = 0; i < 30; i++) {
+    if (w.MN.state.state.assets.some(function (a) { return a.id === "sym-gauge"; })) break;
+    await new Promise(function (r) { setTimeout(r, 100); });
+  }
 
   /* Keep the page's load event open, so a headless browser does not exit
      before the results are posted. The image is in the markup; this is just
@@ -77,7 +82,7 @@ frame.addEventListener("load", async function () {
 
     const S = MN.state;
     const state = S.state;
-    state.items.length = 0; state.notes.length = 0; state.assets.length = 0;
+    state.items.length = 0; state.notes.length = 0;
     state.canvas.width = 400; state.canvas.height = 300; state.canvas.unit = "px"; state.canvas.scale = 1;
     state.canvas.background = { type: "color", value: "#ffffff" };
 
@@ -168,19 +173,49 @@ frame.addEventListener("load", async function () {
       !w.document.body.classList.contains("dropping"));
     w.document.body.classList.remove("dropping");
 
+    /* The block library and the symbol library are there. */
+    log("the blocks are offered", w.MN.state.SHAPES.length >= 4, w.MN.state.SHAPES.length + " blocks");
+    log("the symbol library is installed",
+      state.assets.some(function (a) { return a.id === "sym-gauge"; }));
+
+    /* A block has to be drawn the same way in the editor and in the export. */
+    const block = w.MN.interact.placeBlock("button");
+    block.x = 10; block.y = 10; block.w = 120; block.h = 30; block.text = "GO";
+    w.MN.state.commit("block geometry");
+    const blockCanvas = await w.MN.exporter.renderCanvas({ tier: 1, annotated: false });
+    const bctx = blockCanvas.getContext("2d", { willReadFrequently: true });
+    const at = function (x, y) {
+      const d = bctx.getImageData(x, y, 1, 1).data;
+      return d[0] + "," + d[1] + "," + d[2];
+    };
+    log("a block is drawn in the export", at(60, 25) === "43,58,85", at(60, 25));
+    log("the block does not spill outside itself", at(300, 250) === "255,255,255", at(300, 250));
+    let ink = 0;
+    for (let x = 20; x < 120; x++) {
+      for (let y = 14; y < 36; y++) {
+        const p = at(x, y);
+        if (Number(p.split(",")[0]) > 180) ink += 1;
+      }
+    }
+    log("the block's label is drawn in it", ink > 10, ink + " pixels");
+    const shapeDoc = w.MN.project.exportDocument().items.filter(function (i) { return i.kind === "shape"; })[0];
+    log("a block survives a save",
+      !!shapeDoc && shapeDoc.shape === "button" && shapeDoc.text === "GO" && shapeDoc.fill === "#2b3a55",
+      shapeDoc ? shapeDoc.shape : "none");
+
     /* undo and redo */
     const before = state.items.length;
     const historyBefore = S.history.past.length;
     const undoResult = S.undo();
     const afterUndo = state.items.length;
     const historyAfter = S.history.past.length;
-    /* Four or more commits so far: the text, the image, the note and the
-       press. One undo takes the note away again. */
-    log("diag undo", undoResult === true && afterUndo === 2 && historyBefore >= 4,
-      "returned=" + undoResult + " items=" + afterUndo + " historyBefore=" + historyBefore + " historyAfter=" + historyAfter);
+    /* One undo takes one commit off the history. What it removes depends on
+       what was committed last, so the counts are relative. */
+    log("diag undo", undoResult === true && historyAfter === historyBefore - 1,
+      "returned=" + undoResult + " items=" + before + "->" + afterUndo +
+      " history " + historyBefore + "->" + historyAfter);
     S.redo();
-    /* The undo took the note away, the redo put it back. */
-    log("undo and redo", afterUndo === 2 && state.notes.length === 1 && state.items.length === 2,
+    log("undo and redo", state.items.length === before && S.history.past.length === historyBefore,
       before + " -> " + afterUndo + " -> " + state.items.length + ", notes=" + state.notes.length);
 
     /* snapping */

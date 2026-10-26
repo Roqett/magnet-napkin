@@ -196,6 +196,52 @@
     };
   }
 
+  /* The blocks: plain placeholders you drop in to say what goes where. A
+     button is a button, an image block is where the hero image goes, a
+     highlight is a band of colour, a spacer is a gap, a lamp is a status
+     pill, a dot is an indicator. The real content is made later; this says
+     where it goes and roughly how it should look. */
+  const SHAPES = [
+    { id: "button", label: "Button", w: 70, h: 26, text: "Button", fill: "#2b3a55", border: "#4a6a9a", color: "#e8eef8", radius: 0.14, dashed: false },
+    { id: "image", label: "Image", w: 120, h: 80, text: "Image", fill: "#1b1e26", border: "#4a5468", color: "#8a94a8", radius: 0.04, dashed: true },
+    { id: "highlight", label: "Highlight", w: 100, h: 40, text: "", fill: "#3a2f6b", border: "#4a3d80", color: "#ffffff", radius: 0.06, dashed: false },
+    { id: "spacer", label: "Spacer", w: 60, h: 24, text: "", fill: "transparent", border: "#5a6274", color: "#8a94a8", radius: 0.04, dashed: true },
+    { id: "lamp", label: "Lamp", w: 64, h: 18, text: "Lamp", fill: "#1f6b34", border: "#2f9a4d", color: "#b8f5c8", radius: 0.5, dashed: false },
+    { id: "dot", label: "Dot", w: 12, h: 12, text: "", fill: "#c98a2b", border: "#7a4f12", color: "#ffffff", radius: 0.5, dashed: false },
+  ];
+
+  function shapeSpec(shapeId) {
+    return SHAPES.find(function (s) { return s.id === shapeId; }) || SHAPES[0];
+  }
+
+  function newShapeItem(shapeId) {
+    const spec = shapeSpec(shapeId);
+    return {
+      id: core.uid("i"),
+      kind: "shape",
+      shape: spec.id,
+      text: spec.text,
+      x: 0, y: 0, w: spec.w, h: spec.h,
+      rotation: 0, opacity: 1, locked: false,
+      fill: spec.fill,
+      border: spec.border,
+      color: spec.color,
+      fontFamily: "Helvetica Neue",
+      fontSize: 0,          // 0 means: follow the height
+      fontWeight: 700,
+      align: "center",
+      borderWidth: 1,
+      dashed: !!spec.dashed,
+    };
+  }
+
+  /* The text size of a shape follows its height unless it was set by hand.
+     Capped, so a big block gets a label rather than a headline. */
+  function shapeFontSize(item) {
+    if (item.fontSize > 0) return item.fontSize;
+    return Math.max(1, Math.min(item.h * 0.4, 16));
+  }
+
   function newNote(text) {
     return {
       id: core.uid("n"),
@@ -317,6 +363,8 @@
     select: select, deselect: deselect, selectedItem: selectedItem, selectedNote: selectedNote,
     findItem: findItem, findNote: findNote, findAsset: findAsset,
     newTextItem: newTextItem, newNote: newNote, newImageItem: newImageItem,
+    newShapeItem: newShapeItem, shapeSpec: shapeSpec, shapeFontSize: shapeFontSize,
+    SHAPES: SHAPES,
     removeItem: removeItem, removeNote: removeNote, removeObject: removeObject,
     duplicateItem: duplicateItem, duplicateNote: duplicateNote, duplicateObject: duplicateObject,
     bringToFront: bringToFront, sendToBack: sendToBack,

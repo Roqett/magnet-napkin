@@ -71,6 +71,12 @@
         reject(err);
         return;
       }
+      /* A database that is being deleted, or a version change that another
+         tab is blocking, can leave the request hanging for ever. The board
+         still works without a store, so give up rather than wait. */
+      const timer = setTimeout(function () {
+        reject(new Error("The database did not respond"));
+      }, 8000);
       request.onupgradeneeded = function () {
         const db = request.result;
         for (const store of stores) {
@@ -83,9 +89,18 @@
           }
         }
       };
-      request.onsuccess = function () { resolve(request.result); };
-      request.onerror = function () { reject(request.error || new Error("IndexedDB is unavailable")); };
-      request.onblocked = function () { reject(new Error("IndexedDB is blocked by another tab")); };
+      request.onsuccess = function () {
+        clearTimeout(timer);
+        resolve(request.result);
+      };
+      request.onerror = function () {
+        clearTimeout(timer);
+        reject(request.error || new Error("IndexedDB is unavailable"));
+      };
+      request.onblocked = function () {
+        clearTimeout(timer);
+        reject(new Error("IndexedDB is blocked by another tab"));
+      };
     }).catch(function (err) {
       /* A database left at a higher version by an older build cannot be
          opened with our version number. Open it as it is and use the stores
@@ -98,6 +113,9 @@
           reject(err2);
           return;
         }
+        const timer = setTimeout(function () {
+          reject(new Error("The database did not respond"));
+        }, 8000);
         request.onupgradeneeded = function () {
           const db = request.result;
           for (const store of stores) {
@@ -108,9 +126,18 @@
             }
           }
         };
-        request.onsuccess = function () { resolve(request.result); };
-        request.onerror = function () { reject(request.error || new Error("IndexedDB is unavailable")); };
-        request.onblocked = function () { reject(new Error("IndexedDB is blocked by another tab")); };
+        request.onsuccess = function () {
+          clearTimeout(timer);
+          resolve(request.result);
+        };
+        request.onerror = function () {
+          clearTimeout(timer);
+          reject(request.error || new Error("IndexedDB is unavailable"));
+        };
+        request.onblocked = function () {
+          clearTimeout(timer);
+          reject(new Error("IndexedDB is blocked by another tab"));
+        };
       });
     });
     return dbPromises[name];
@@ -531,6 +558,27 @@
     const assets = [];
     for (const raw of doc.assets || []) {
       const id = typeof raw.id === "string" ? raw.id : core.uid("a");
+      /* The built-in symbols carry no blob: they are re-resolved from the
+         library instead, so a saved board still finds them. */
+      if (id.indexOf("sym-") === 0 && MN.symbols) {
+        const name = id.slice(4);
+        const url = MN.symbols.urlFor(name);
+        if (url) {
+          assets.push({
+            id: id,
+            name: raw.name || name,
+            path: raw.path || ("library/symbols/" + name + ".svg"),
+            mime: "image/svg+xml",
+            width: 24,
+            height: 24,
+            blob: null,
+            url: url,
+            builtin: true,
+            missing: false,
+          });
+          continue;
+        }
+      }
       let blob = null;
       try {
         blob = await idbGet(DB_MAIN, STORE_BLOBS, id);
@@ -552,6 +600,8 @@
 
     await loadDocument(doc, { assets: assets, silent: true });
     layoutDirty = false;
+    /* The library belongs in the tray whatever order things happen in. */
+    if (MN.symbols) MN.symbols.install();
     return true;
   }
 
@@ -565,7 +615,7 @@
 
   function normaliseItem(raw) {
     if (!raw || typeof raw !== "object") return null;
-    const kind = raw.kind === "text" ? "text" : "image";
+    const kind = raw.kind === "text" ? "text" : raw.kind === "shape" ? "shape" : "image";
     const item = {
       id: typeof raw.id === "string" && raw.id ? raw.id : core.uid("i"),
       kind: kind,
@@ -579,6 +629,18 @@
     };
     if (kind === "image") {
       item.assetId = typeof raw.assetId === "string" ? raw.assetId : null;
+    } else if (kind === "shape") {
+      const spec = S.shapeSpec(raw.shape);
+      item.shape = spec.id;
+      item.text = typeof raw.text === "string" ? raw.text : spec.text;
+      item.fill = typeof raw.fill === "string" ? raw.fill : spec.fill;
+      item.border = typeof raw.border === "string" ? raw.border : spec.border;
+      item.color = typeof raw.color === "string" ? raw.color : spec.color;
+      item.borderWidth = clampNumber(raw.borderWidth, 1, 0, 20);
+      item.fontFamily = typeof raw.fontFamily === "string" ? raw.fontFamily : "Helvetica Neue";
+      item.fontSize = clampNumber(raw.fontSize, 0, 0, 1000);
+      item.fontWeight = clampNumber(raw.fontWeight, 700, 100, 900);
+      item.align = ["left", "center", "right"].indexOf(raw.align) >= 0 ? raw.align : "center";
     } else {
       item.text = typeof raw.text === "string" ? raw.text : "";
       item.fontFamily = typeof raw.fontFamily === "string" ? raw.fontFamily : "system-ui";
@@ -842,6 +904,18 @@
       MN.stage.applyView();
       MN.app.setStatus("Restored your last board from this browser.");
     }
+
+    /* The symbol library is always in the tray. */
+    if (MN.symbols) {
+      MN.symbols.install();
+      MN.assets.renderTray();
+    }
+    /* And again in case a restore landed after it. */
+    setTimeout(function () {
+      if (!MN.symbols) return;
+      MN.symbols.install();
+      MN.assets.renderTray();
+    }, 1500);
 
     /* Only a layout change makes the board worth writing. */
     S.on("change", function (event) {

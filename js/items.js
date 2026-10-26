@@ -54,6 +54,10 @@
       const asset = S.findAsset(item.assetId);
       return "Image: " + (asset ? asset.name : "Missing image");
     }
+    if (item.kind === "shape") {
+      const spec = S.shapeSpec(item.shape);
+      return spec.label + (item.text ? ": " + item.text : "");
+    }
     /* Text and notes name themselves from their rendered lines, so the
        accessible name carries the same line breaks as the visible text. */
     return "";
@@ -82,7 +86,7 @@
     return MN.textlayout.layoutText({
       text: item.text,
       fontFamily: item.fontFamily,
-      fontSize: item.fontSize,
+      fontSize: item.kind === "shape" ? S.shapeFontSize(item) : item.fontSize,
       fontWeight: item.fontWeight,
       width: textWidthOf(item),
       align: item.align || "left",
@@ -90,8 +94,9 @@
   }
 
   function makeEl(item, isNote) {
+    const kind = isNote ? "note" : item.kind;
     const el = core.el("div", {
-      class: "magnet" + (isNote ? " note" : item.kind === "text" ? " text-item" : ""),
+      class: "magnet" + (kind === "text" ? " text-item" : kind === "shape" ? " shape" : ""),
       dataset: { id: item.id },
       tabindex: "0",
       role: "button",
@@ -109,6 +114,8 @@
         /* The file is not here. Say so instead of showing nothing. */
         el.appendChild(core.el("div", { class: "missing-asset", text: asset ? asset.name : "Missing image" }));
       }
+    } else if (item.kind === "shape") {
+      el.appendChild(core.el("div", { class: "text-body shape-body" }));
     } else {
       el.appendChild(core.el("div", { class: "text-body" }));
     }
@@ -230,6 +237,23 @@
       } else if (img && img.getAttribute("src") !== url) {
         img.setAttribute("src", url);
       }
+      return;
+    }
+    if (item.kind === "shape") {
+      /* A shape is a filled, bordered box with the text centred in it. The
+         exporter draws exactly this, so the two agree. */
+      renderTextBody(el, item, p);
+      const body = el.querySelector(".shape-body");
+      if (!body) return;
+      const spec = S.shapeSpec(item.shape);
+      body.style.background = item.fill || spec.fill;
+      body.style.borderStyle = (item.dashed || spec.dashed) ? "dashed" : "solid";
+      body.style.borderColor = item.border || spec.border;
+      body.style.borderWidth = (item.borderWidth || 1) * p + "px";
+      body.style.borderRadius = spec.radius * item.h * p + "px";
+      body.style.color = item.color || spec.color;
+      body.style.fontWeight = item.fontWeight || 700;
+      body.style.textAlign = item.align || "center";
       return;
     }
     renderTextBody(el, item, p);

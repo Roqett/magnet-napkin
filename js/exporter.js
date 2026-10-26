@@ -103,6 +103,62 @@
     drawTextLines(ctx, item, layout, scale, 0, 0);
   }
 
+  /* A rounded rectangle, in the current path. */
+  function roundRect(ctx, x, y, w, h, r) {
+    const radius = Math.max(0, Math.min(r, w / 2, h / 2));
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.arcTo(x + w, y, x + w, y + h, radius);
+    ctx.arcTo(x + w, y + h, x, y + h, radius);
+    ctx.arcTo(x, y + h, x, y, radius);
+    ctx.arcTo(x, y, x + w, y, radius);
+    ctx.closePath();
+  }
+
+  /* A shape is a filled, bordered box with the text centred in it. The editor
+     draws the same thing with CSS, so the two agree. */
+  function drawShape(ctx, item, scale) {
+    const spec = MN.items.shapeSpec ? MN.items.shapeSpec(item.shape) : null;
+    const w = item.w * scale;
+    const h = item.h * scale;
+    const borderWidth = (item.borderWidth || 1) * scale;
+    const radius = (spec ? spec.radius : 0.1) * item.h * scale;
+
+    ctx.fillStyle = item.fill || (spec ? spec.fill : "#1c1c1c");
+    ctx.strokeStyle = item.border || (spec ? spec.border : "#3a3a3a");
+    ctx.lineWidth = borderWidth;
+
+    const r = Math.max(0, radius - borderWidth / 2);
+    const inset = borderWidth / 2;
+    roundRect(ctx, inset, inset, Math.max(0, w - borderWidth), Math.max(0, h - borderWidth), r);
+    ctx.fill();
+    ctx.stroke();
+
+    if (!item.text) return;
+
+    const layout = MN.items.layoutOf(item);
+    const fontSize = (item.fontSize > 0 ? item.fontSize : Math.min(item.h * 0.4, 16));
+    ctx.font = MN.textlayout.fontString(item, fontSize * scale);
+    ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left";
+    ctx.fillStyle = item.color || (spec ? spec.color : "#ededed");
+
+    const blockHeight = layout.lines.length * layout.lineHeight * scale;
+    const top = (h - blockHeight) / 2;
+    const baseline = MN.textlayout.baselineOffset({
+      fontFamily: item.fontFamily,
+      fontWeight: item.fontWeight,
+      fontSize: fontSize,
+    }) * scale;
+
+    for (let i = 0; i < layout.lines.length; i += 1) {
+      const line = layout.lines[i];
+      const x = (w - line.width * scale) / 2;
+      const y = top + i * layout.lineHeight * scale + baseline;
+      ctx.fillText(line.text, x, y);
+    }
+  }
+
   /* ---------- notes ---------- */
 
   function drawNote(ctx, note, scale) {
@@ -149,6 +205,7 @@
     ctx.translate(-obj.w * scale / 2, -obj.h * scale / 2);
     if (isNote) drawNote(ctx, obj, scale);
     else if (obj.kind === "text") drawTextItem(ctx, obj, scale);
+    else if (obj.kind === "shape") drawShape(ctx, obj, scale);
     else return drawImageItem(ctx, obj, scale).then(function () { ctx.restore(); });
     ctx.restore();
     return Promise.resolve();

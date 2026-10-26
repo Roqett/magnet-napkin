@@ -37,10 +37,30 @@ const SHAPES = [
   ["samples/photos/gradient.svg", "gradient.svg"],
 ];
 
-const cleared = indexedDB.deleteDatabase("napkinetic");
-cleared.onsuccess = cleared.onerror = cleared.onblocked = function () {
-  frame.src = "/index.html";
-};
+/* Clear the stored project without deleting the database: a delete is blocked
+   by the app's own open connection, and a pending delete stops every later
+   open from completing. */
+function clearStore() {
+  return new Promise(function (resolve) {
+    let settled = false;
+    const finish = function () { if (!settled) { settled = true; resolve(); } };
+    const request = indexedDB.open("napkinetic");
+    request.onsuccess = function () {
+      const db = request.result;
+      const names = Array.from(db.objectStoreNames);
+      if (!names.length) { finish(); return; }
+      const tx = db.transaction(names, "readwrite");
+      for (const name of names) tx.objectStore(name).clear();
+      tx.oncomplete = finish;
+      tx.onerror = finish;
+    };
+    request.onerror = finish;
+    request.onblocked = finish;
+    setTimeout(finish, 2000);
+  });
+}
+
+clearStore().then(function () { frame.src = "/index.html"; });
 
 frame.addEventListener("load", async function () {
   const w = frame.contentWindow;
@@ -92,6 +112,12 @@ frame.addEventListener("load", async function () {
   note.x = 210; note.y = 330; note.w = 190; note.fontSize = 10;
   w.MN.items.syncTextHeight(note);
 
+  const button = w.MN.interact.placeBlock("button");
+  button.x = 40; button.y = 400; button.w = 100; button.h = 28; button.text = "CHUTE";
+  const symbol = state.assets.find(function (a) { return a.id === "sym-gauge"; });
+  const gauge = w.MN.interact.placeAsset(symbol, 430, 380);
+  gauge.w = 60; gauge.h = 60;
+
   /* Each step shows only as much as has happened by then. */
   const order = [
     { items: 0, notes: 0, select: false },   // the empty board
@@ -102,10 +128,10 @@ frame.addEventListener("load", async function () {
     { items: 5, notes: 0, select: false },
     { items: 6, notes: 0, select: false },   // all the artwork
     { items: 7, notes: 0, select: false },   // and the label
-    { items: 7, notes: 1, select: false },   // and a note
-    { items: 7, notes: 1, select: true },   // select the gauge
-    { items: 7, notes: 1, select: false },
-    { items: 7, notes: 1, select: true }
+    { items: 8, notes: 1, select: false },   // and a note
+    { items: 8, notes: 1, select: true },   // select the gauge
+    { items: 9, notes: 1, select: false },   // and a button block
+    { items: 10, notes: 1, select: false }   // and a symbol
   ];
   const shot = order[step];
 

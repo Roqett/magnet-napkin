@@ -53,6 +53,55 @@
     return MN.units.unitOf(state.canvas.unit).label;
   }
 
+  /* ---------- colour control ----------
+     The swatch opens the system colour picker, the field takes a hex, and
+     the row of swatches is the palette. Everything ends up as a plain hex
+     value, because that is what an agent needs to reproduce. */
+  function colourField(label, id, value, onChange) {
+    const current = MN.palette.normalise(value) || "#000000";
+    const wrap = core.el("div", { class: "colour-control" });
+
+    const picker = core.el("input", {
+      id: id, type: "color", value: current, "aria-label": label + " colour",
+    });
+    picker.addEventListener("input", function () { onChange(picker.value); });
+    picker.addEventListener("change", function () { onChange(picker.value); });
+
+    const hex = core.el("input", {
+      id: id + "-hex", type: "text", value: current, class: "hex",
+      spellcheck: "false", "aria-label": label + " hex value",
+    });
+    hex.addEventListener("change", function () {
+      const parsed = MN.palette.normalise(hex.value);
+      if (!parsed) {
+        hex.value = current;
+        MN.app.setStatus("That is not a hex colour.");
+        return;
+      }
+      onChange(parsed);
+    });
+
+    const swatches = core.el("div", { class: "swatches" });
+    for (const entry of MN.palette.PALETTE) {
+      const swatch = core.el("button", {
+        type: "button",
+        class: "swatch",
+        title: entry.name + " " + entry.hex,
+        "aria-label": entry.name,
+      });
+      swatch.style.background = entry.hex;
+      swatch.addEventListener("click", function () { onChange(entry.hex); });
+      swatches.appendChild(swatch);
+    }
+
+    wrap.appendChild(picker);
+    wrap.appendChild(hex);
+    wrap.appendChild(swatches);
+    return core.el("div", { class: "field wide-colour" }, [
+      core.el("label", { text: label }), wrap,
+    ]);
+  }
+
   /* ---------- canvas section ---------- */
 
   function buildCanvasSection() {
@@ -191,17 +240,10 @@
     }
 
     if (bgSelect.value === "color") {
-      const colour = core.el("input", {
-        id: "i-bg-colour", type: "color",
-        value: state.canvas.background.value || "#eef0f3",
-        "aria-label": "Canvas colour",
-      });
-      colour.addEventListener("input", function () {
-        state.canvas.background.value = colour.value;
+      frag.appendChild(colourField("Colour", "i-bg-colour", state.canvas.background.value, function (hex) {
+        state.canvas.background.value = hex;
         MN.stage.applyBackground();
-      });
-      colour.addEventListener("change", function () { S.commit("background colour"); });
-      frag.appendChild(row("Colour", colour));
+      }));
     }
 
     /* An underlay: a faint reference image under the artwork, to trace
@@ -441,35 +483,18 @@
     });
     frag.appendChild(row("Weight", weight));
 
-    const colour = core.el("input", {
-      id: "i-color", type: "color", value: item.color || "#111111", "aria-label": "Text colour",
-    });
-    colour.addEventListener("input", function () {
-      item.color = colour.value;
+    const colour = colourField("Colour", "i-color", item.color || "#111111", function (hex) {
+      item.color = hex;
       MN.items.updateItem(item);
     });
-    colour.addEventListener("change", function () {
-      item.color = colour.value;
-      MN.items.updateItem(item);
-      S.commit("edit text colour");
-    });
-    frag.appendChild(row("Colour", colour));
+    frag.appendChild(colour);
 
     if (isNote) {
       /* A note is always on paper: it never has a transparent backdrop. */
-      const bgColour = core.el("input", {
-        id: "i-textbg", type: "color", value: item.background || "#fff3b0", "aria-label": "Note paper colour",
-      });
-      bgColour.addEventListener("input", function () {
-        item.background = bgColour.value;
+      frag.appendChild(colourField("Paper", "i-textbg", item.background || "#fff3b0", function (hex) {
+        item.background = hex;
         MN.items.updateItem(item);
-      });
-      bgColour.addEventListener("change", function () {
-        item.background = bgColour.value;
-        MN.items.updateItem(item);
-        S.commit("edit note colour");
-      });
-      frag.appendChild(row("Paper", bgColour));
+      }));
     } else {
       const hasBackground = item.background && item.background !== "transparent";
       const bgMode = core.el("select", { id: "i-bgmode", "aria-label": "Text background" }, [
@@ -487,15 +512,10 @@
       frag.appendChild(row("Backdrop", bgMode));
 
       if (hasBackground) {
-        const bgColour = core.el("input", {
-          id: "i-textbg", type: "color", value: item.background, "aria-label": "Text background colour",
-        });
-        bgColour.addEventListener("input", function () {
-          item.background = bgColour.value;
+        frag.appendChild(colourField("Colour", "i-textbg", item.background, function (hex) {
+          item.background = hex;
           MN.items.updateItem(item);
-        });
-        bgColour.addEventListener("change", function () { S.commit("edit text background"); });
-        frag.appendChild(row("Colour", bgColour));
+        }));
       }
     }
     const align = core.el("select", { id: "i-align", "aria-label": "Text alignment" }, [
@@ -526,6 +546,91 @@
     return frag;
   }
 
+  /* ---------- shape section ---------- */
+
+  function buildShapeSection(item) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(section("Block"));
+
+    const textArea = core.el("textarea", {
+      id: "i-shape-text", rows: "2", "aria-label": "Block text",
+    });
+    textArea.value = item.text == null ? "" : item.text;
+    const applyText = function () {
+      item.text = textArea.value;
+      MN.items.updateItem(item);
+      MN.inspector.updateValues();
+    };
+    textArea.addEventListener("input", applyText);
+    textArea.addEventListener("change", function () {
+      applyText();
+      S.commit("edit block text");
+    });
+    frag.appendChild(core.el("div", { class: "field wide" }, [
+      core.el("label", { text: "Text" }), textArea,
+    ]));
+
+    const kind = core.el("select", { id: "i-shape-kind", "aria-label": "Block kind" },
+      S.SHAPES.map(function (spec) {
+        return core.el("option", { value: spec.id, text: spec.label });
+      }));
+    kind.value = item.shape;
+    kind.addEventListener("change", function () {
+      const spec = S.shapeSpec(kind.value);
+      item.shape = spec.id;
+      if (!item.text) item.text = spec.text;
+      MN.items.updateItem(item);
+      S.commit("edit block kind");
+      render();
+    });
+    frag.appendChild(row("Kind", kind));
+
+    frag.appendChild(colourField("Fill", "i-shape-fill", item.fill, function (hex) {
+      item.fill = hex;
+      MN.items.updateItem(item);
+    }));
+    frag.appendChild(colourField("Border", "i-shape-border", item.border, function (hex) {
+      item.border = hex;
+      MN.items.updateItem(item);
+    }));
+    frag.appendChild(colourField("Ink", "i-shape-ink", item.color, function (hex) {
+      item.color = hex;
+      MN.items.updateItem(item);
+    }));
+
+    const auto = core.el("input", {
+      id: "i-shape-size", type: "number", min: "0", step: "any",
+      value: item.fontSize || 0,
+      "aria-label": "Text size, zero follows the block height",
+    });
+    auto.addEventListener("input", function () {
+      item.fontSize = Math.max(0, core.num(auto.value));
+      MN.items.updateItem(item);
+      MN.inspector.updateValues();
+    });
+    auto.addEventListener("change", function () { S.commit("edit block size"); });
+    frag.appendChild(row("Size", auto, unitLabel()));
+
+    const dashed = core.el("input", {
+      id: "i-shape-dashed", type: "checkbox", "aria-label": "Dashed border",
+    });
+    dashed.checked = !!item.dashed;
+    dashed.addEventListener("change", function () {
+      item.dashed = dashed.checked;
+      MN.items.updateItem(item);
+      S.commit("edit block border");
+    });
+    frag.appendChild(core.el("div", { class: "field" }, [
+      core.el("label", { text: "Dashed" }), dashed, core.el("span", { class: "unit" }),
+    ]));
+
+    frag.appendChild(core.el("p", { class: "hint small" }, [
+      document.createTextNode("Size 0 follows the block height. A block is a placeholder: it says what goes here, not what it looks like."),
+    ]));
+
+    return frag;
+  }
+
   /* ---------- selection placeholder ---------- */
 
   function buildHint() {
@@ -551,6 +656,7 @@
     if (item) {
       bodyEl.appendChild(buildItemSection(item));
       if (item.kind === "text") bodyEl.appendChild(buildTextSection(item, false));
+      if (item.kind === "shape") bodyEl.appendChild(buildShapeSection(item));
     } else if (note) {
       bodyEl.appendChild(buildItemSection(note));
       bodyEl.appendChild(buildTextSection(note, true));

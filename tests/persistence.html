@@ -64,20 +64,26 @@ function readCurrent(frame) {
   const wA = A.contentWindow;
   const wB = B.contentWindow;
 
-  /* A clean store, and both tabs open before anything is saved. */
-  for (const name of ["napkinetic", "napkinetic-meta"]) {
-    await new Promise(function (resolve) {
-      const request = indexedDB.deleteDatabase(name);
-      let done = false;
-      const finish = function () { if (!done) { done = true; resolve(); } };
-      request.onsuccess = finish;
-      request.onerror = finish;
-      request.onblocked = finish;
-      /* Another tab may hold the database open, and then the delete never
-         completes. Do not wait for it forever. */
-      setTimeout(finish, 2000);
-    });
-  }
+  /* Clear the store, but do not delete the database: a delete is blocked by
+     the app's own open connection, and a pending delete stops every later
+     open from completing — it poisons the whole browser profile. */
+  await new Promise(function (resolve) {
+    let settled = false;
+    const finish = function () { if (!settled) { settled = true; resolve(); } };
+    const request = indexedDB.open("napkinetic");
+    request.onsuccess = function () {
+      const db = request.result;
+      const names = Array.from(db.objectStoreNames);
+      if (!names.length) { finish(); return; }
+      const tx = db.transaction(names, "readwrite");
+      for (const name of names) tx.objectStore(name).clear();
+      tx.oncomplete = finish;
+      tx.onerror = finish;
+    };
+    request.onerror = finish;
+    request.onblocked = finish;
+    setTimeout(finish, 2000);
+  });
   A.src = "/index.html";
   B.src = "/index.html";
   await wait(1500);
@@ -103,7 +109,8 @@ function readCurrent(frame) {
       wB.MN.project.getOtherTabUpdated() === true);
 
     /* 3. Tab B changes the zoom and saves: a view-only change. */
-    wB.MN.stage.setZoom(0.5);
+    const zoomTo = wB.MN.state.state.view.zoom === 0.37 ? 0.51 : 0.37;
+    wB.MN.stage.setZoom(zoomTo);
     await wait(1400);
 
     /* 4. Tab A's board must still be intact. */
