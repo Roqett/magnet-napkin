@@ -11,8 +11,8 @@
   /* Which slices have landed. Each flag is turned on by the phase that
      implements it. */
   const CAPS = {
-    zoom: false,
-    zoomfit: false,
+    zoom: true,
+    zoomfit: true,
     import: false,
     text: false,
     note: false,
@@ -38,7 +38,6 @@
   };
 
   const statusEl = core.$("#status");
-  const boardEl = core.$("#board");
 
   function setStatus(message) {
     if (statusEl) statusEl.textContent = message;
@@ -60,18 +59,8 @@
     core.$("#c-scale").value = core.fmtNum(state.canvas.scale, 4);
   }
 
-  /* The board is drawn in pixels: canvas units x scale. */
-  function applyCanvasSize() {
-    const c = state.canvas;
-    boardEl.style.width = c.width * c.scale + "px";
-    boardEl.style.height = c.height * c.scale + "px";
-    const grid = core.$("#grid");
-    if (grid) {
-      const step = state.view.gridSize * c.scale;
-      grid.style.backgroundSize = step + "px " + step + "px";
-    }
-  }
-
+  /* The board is drawn in pixels: canvas units x scale x zoom.
+     stage.js owns that; this is only the empty-state bookkeeping. */
   function updateEmptyState() {
     const empty = core.$("#empty-state");
     if (!empty) return;
@@ -87,7 +76,6 @@
     function setCanvas(patch, label) {
       Object.assign(state.canvas, patch);
       S.commit(label);
-      applyCanvasSize();
       renderCanvasControls();
       updateEmptyState();
     }
@@ -106,10 +94,14 @@
       const next = unitSelect.value;
       const previous = state.canvas.unit;
       const patch = { unit: next };
-      /* If the scale was still the old unit's default, adopt the new unit's
-         default. Anything else is a deliberate choice and is left alone. */
+      /* If the scale or the grid step was still the old unit's default, adopt
+         the new unit's default. Anything else is a deliberate choice and is
+         left alone. */
       if (state.canvas.scale === MN.units.UNITS[previous].defaultScale) {
         patch.scale = MN.units.UNITS[next].defaultScale;
+      }
+      if (state.view.gridSize === MN.units.UNITS[previous].defaultGrid) {
+        state.view.gridSize = MN.units.UNITS[next].defaultGrid;
       }
       setCanvas(patch, "canvas unit");
     });
@@ -117,6 +109,37 @@
     scaleInput.addEventListener("change", function () {
       const s = Math.max(0.0001, core.num(scaleInput.value));
       setCanvas({ scale: s }, "canvas scale");
+    });
+  }
+
+  /* ---------- view controls ---------- */
+
+  function viewCentre() {
+    const viewport = core.$("#viewport");
+    const rect = viewport.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+
+  function wireViewControls() {
+    core.$('[data-act="zoomin"]').addEventListener("click", function () {
+      MN.stage.zoomIn(viewCentre());
+    });
+    core.$('[data-act="zoomout"]').addEventListener("click", function () {
+      MN.stage.zoomOut(viewCentre());
+    });
+    core.$('[data-act="fit"]').addEventListener("click", function () {
+      MN.stage.fit();
+    });
+
+    core.$("#gridToggle").addEventListener("change", function (e) {
+      state.view.grid = e.target.checked;
+      MN.stage.applyView();
+    });
+    core.$("#snapToggle").addEventListener("change", function (e) {
+      state.view.snap = e.target.checked;
+    });
+    core.$("#aspectToggle").addEventListener("change", function (e) {
+      state.view.aspect = e.target.checked;
     });
   }
 
@@ -149,9 +172,9 @@
   function boot() {
     applyCapabilities();
     renderCanvasControls();
-    applyCanvasSize();
     updateEmptyState();
     wireCanvasControls();
+    wireViewControls();
     wireHistory();
     S.resetHistory();
     S.on("change", function () {
