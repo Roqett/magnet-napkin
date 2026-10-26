@@ -22,7 +22,7 @@
     save: true,
     open: true,
     exportPng: true,
-    handoff: false,
+    handoff: true,
   };
 
   const ACT_CAP = {
@@ -252,6 +252,53 @@
 
   /* ---------- boot ---------- */
 
+  /* ---------- the handoff ---------- */
+
+  function wireHandoff() {
+    const dialog = core.$("#handoff-dialog");
+
+    function updateSize() {
+      const tier = core.num(core.$("#export-tier").value) || 1;
+      const size = MN.exporter.canvasSizeFor(tier);
+      const label = core.$("#handoff-size");
+      if (label) {
+        label.textContent = "PNGs at " + tier + "×: " + size.width + " × " + size.height + " px. " +
+          state.items.length + " item" + (state.items.length === 1 ? "" : "s") + ", " +
+          state.notes.length + " note" + (state.notes.length === 1 ? "" : "s") + ".";
+      }
+    }
+
+    core.$('[data-act="handoff"]').addEventListener("click", function () {
+      updateSize();
+      if (dialog && typeof dialog.showModal === "function") dialog.showModal();
+    });
+    core.$("#close-handoff").addEventListener("click", function () { dialog.close(); });
+    core.$("#export-tier").addEventListener("change", updateSize);
+
+    core.$$("[data-export]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        const tier = core.num(core.$("#export-tier").value) || 1;
+        const kind = button.dataset.export;
+        const work = kind === "clean" ? MN.handoff.downloadCleanPng(tier)
+          : kind === "annotated" ? MN.handoff.downloadAnnotatedPng(tier)
+          : kind === "json" ? Promise.resolve(MN.handoff.downloadJson())
+          : Promise.resolve(MN.handoff.downloadNotes());
+        Promise.resolve(work).then(function (result) {
+          setStatus("Downloaded " + (result && result.name ? result.name : kind) +
+            (result && result.width ? " · " + result.width + " × " + result.height + " px" : ""));
+        }).catch(function (err) {
+          window.alert("That file could not be produced: " + (err && err.message ? err.message : "unknown error"));
+        });
+      });
+    });
+
+    core.$("#copy-handoff").addEventListener("click", function () {
+      MN.handoff.copyBrief().then(function (ok) {
+        setStatus(ok ? "Handoff brief copied to the clipboard." : "Could not reach the clipboard — use notes.md instead.");
+      });
+    });
+  }
+
   function boot() {
     applyCapabilities();
     renderCanvasControls();
@@ -259,6 +306,7 @@
     wireCanvasControls();
     wireViewControls();
     wireProjectActions();
+    wireHandoff();
     wireHistory();
     S.resetHistory();
     S.on("change", function () {

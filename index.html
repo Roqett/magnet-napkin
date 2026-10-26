@@ -123,13 +123,14 @@
 
 <dialog id="handoff-dialog" aria-labelledby="handoff-title">
   <h2 id="handoff-title">Handoff</h2>
-  <p class="muted">Four files, one click each. Browsers block multiple automatic downloads.</p>
+  <p class="muted">Four files, one click each. Browsers block multiple automatic downloads, so nothing is fired for you.</p>
   <div class="handoff-grid">
     <button type="button" data-export="clean">layout.png<small>the clean design — no notes</small></button>
     <button type="button" data-export="annotated">layout-annotated.png<small>the same board with the notes visible</small></button>
     <button type="button" data-export="json">layout.json<small>the machine contract</small></button>
     <button type="button" data-export="notes">notes.md<small>the brief for a human or an agent</small></button>
   </div>
+  <p id="handoff-size" class="muted"></p>
   <div class="handoff-actions">
     <button type="button" id="copy-handoff">Copy handoff brief</button>
     <button type="button" id="close-handoff" class="quiet">Close</button>
@@ -170,6 +171,7 @@
 <script src="js/interact.js"></script>
 <script src="js/inspector.js"></script>
 <script src="js/exporter.js"></script>
+<script src="js/handoff.js"></script>
 <script src="js/project.js"></script>
 <script src="js/app.js"></script>
 </body>
