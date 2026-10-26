@@ -225,6 +225,12 @@
         value: typeof raw.background.value === "string" ? raw.background.value : "#eef0f3",
       };
     }
+    if (raw.underlay && typeof raw.underlay === "object") {
+      base.underlay = {
+        assetId: typeof raw.underlay.assetId === "string" ? raw.underlay.assetId : null,
+        opacity: clampNumber(raw.underlay.opacity, 0.25, 0.05, 1),
+      };
+    }
     return base;
   }
 

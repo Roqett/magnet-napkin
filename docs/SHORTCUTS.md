@@ -38,7 +38,9 @@ One canvas unit is one unit of the canvas: a point on a pt canvas, a millimetre 
 These are the decisions that are not obvious, written down once:
 
 - **An item's centre always stays on the canvas.** Half an item may hang off an edge, but it can never be lost off the board.
+- **The inspector shows both units.** The field holds the canvas unit; the number beside it is the same value in board pixels. The canvas has one scale, so the two are always proportional — there is nothing to link and nothing to switch.
 - **A newly placed asset comes in at its own size**: its pixels divided by the canvas scale. If your artwork is exported at twice the size — the `@2x` files that iOS and macOS apps ship — set **Asset ratio** to `2` in the inspector and everything lands at half that. The Redline panel assets are the reason it is there.
+- **An underlay is a tracing aid, not artwork.** Pick any image from the tray as the underlay and it is drawn faintly under everything, so you can place things against the real thing. Like the grid and the guides, it never reaches the exported PNG.
 - **The aspect ratio is locked by default** for images, and unlocked by the **Aspect** switch. A text box resizes by its wrap width and the height follows the text.
 - **Snapping** targets the grid, the canvas edges and centre, and the edges and centres of everything else on the board. A guide line appears when something snaps, and disappears when you let go. The grid step is in the inspector.
 - **Rotation** is about the item's centre and is in degrees, clockwise. The X/Y/W/H in the inspector are the unrotated box.

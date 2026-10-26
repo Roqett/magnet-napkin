@@ -376,11 +376,11 @@ body.dropping::after {
   box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
 }
 
-#bg, #grid, #items, #notes, #guides { position: absolute; inset: 0; }
+#bg, #grid, #items, #notes, #guides, #underlay { position: absolute; inset: 0; }
 
 /* The layers are containers, not surfaces. If they caught the pointer, the
    empty notes layer would sit over the items and swallow every click. */
-#bg, #grid, #guides, #items, #notes { pointer-events: none; }
+#bg, #grid, #guides, #items, #notes, #underlay { pointer-events: none; }
 .magnet { pointer-events: auto; }
 
 #bg.checker {

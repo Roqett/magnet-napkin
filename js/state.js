@@ -16,6 +16,9 @@
     /* A flat light grey, so the editor and the exported PNG agree. The
        checker is an editor aid for an empty board and is available here. */
     background: { type: "color", value: "#eef0f3" },
+    /* A faint reference image under the artwork, to trace against. It is an
+       editor aid and never reaches the exported PNG. */
+    underlay: { assetId: null, opacity: 0.25 },
   };
 
   const state = {

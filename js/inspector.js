@@ -152,10 +152,64 @@
       frag.appendChild(row("Colour", colour));
     }
 
+    /* An underlay: a faint reference image under the artwork, to trace
+       against. Never drawn into the exported PNG. */
+    const underlay = c.underlay || { assetId: null, opacity: 0.25 };
+    const underlaySelect = core.el("select", { id: "i-underlay", "aria-label": "Underlay image" },
+      [core.el("option", { value: "", text: "No underlay" })].concat(
+        state.assets.map(function (asset) {
+          return core.el("option", { value: asset.id, text: asset.name });
+        })));
+    underlaySelect.value = underlay.assetId || "";
+    underlaySelect.addEventListener("change", function () {
+      state.canvas.underlay = state.canvas.underlay || { assetId: null, opacity: 0.25 };
+      state.canvas.underlay.assetId = underlaySelect.value || null;
+      MN.stage.applyUnderlay();
+      S.commit("underlay");
+    });
+    frag.appendChild(row("Underlay", underlaySelect));
+
+    if (underlay.assetId) {
+      const opacity = core.el("input", {
+        id: "i-underlay-opacity", type: "range", min: "0.05", max: "1", step: "0.05",
+        value: underlay.opacity == null ? 0.25 : underlay.opacity,
+        "aria-label": "Underlay opacity",
+      });
+      const opacityValue = core.el("span", {
+        class: "unit",
+        text: Math.round((underlay.opacity == null ? 0.25 : underlay.opacity) * 100) + "%",
+      });
+      opacity.addEventListener("input", function () {
+        state.canvas.underlay.opacity = core.num(opacity.value);
+        opacityValue.textContent = Math.round(state.canvas.underlay.opacity * 100) + "%";
+        MN.stage.applyUnderlay();
+      });
+      opacity.addEventListener("change", function () { S.commit("underlay opacity"); });
+      frag.appendChild(core.el("div", { class: "field" }, [
+        core.el("label", { text: "Strength" }), opacity, opacityValue,
+      ]));
+    }
+
     return frag;
   }
 
   /* ---------- item section ---------- */
+
+  /* The pixel equivalent of a canvas-unit value. The canvas has one scale, so
+     the two are always proportional: the second number is derived from the
+     first, never stored and never out of step. */
+  function pixelEquivalent(value) {
+    if (state.canvas.scale === 1 && state.canvas.unit === "px") return "px";
+    return core.fmtNum(value * state.canvas.scale, 2) + " px";
+  }
+
+  function updateEquivalents() {
+    core.$$("#inspector-body .unit.px").forEach(function (el) {
+      const input = el.parentNode.querySelector("input");
+      if (!input) return;
+      el.textContent = pixelEquivalent(core.num(input.value));
+    });
+  }
 
   function buildItemSection(item) {
     const frag = document.createDocumentFragment();
@@ -164,23 +218,21 @@
     frag.appendChild(section("Selected"));
     frag.appendChild(core.el("p", { class: "selected-name", text: MN.items.nameFor(item) }));
 
-    const xInput = numberField("i-x", item.x, { label: "X position" });
-    const yInput = numberField("i-y", item.y, { label: "Y position" });
-    const wInput = numberField("i-w", item.w, { min: 0.01, label: "Width" });
-    const hInput = numberField("i-h", item.h, { min: 0.01, label: "Height" });
-
     function applyGeometry(label) {
       MN.interact.clampItem(item);
       MN.items.updateItem(item);
       updateValues();
+      updateEquivalents();
     }
 
-    function bind(id, apply) {
-      const input = core.$("#" + id);
-      if (!input) return;
-      /* The input handler gives live feedback without touching the history;
-         the change handler is the one that commits, and it re-reads the field
-         so a value that arrived any other way is never lost. */
+    /* A geometry field: the value in canvas units, with the board pixels
+       beside it, the way the Redline board always showed it. */
+    function geometryField(label, id, value, apply, min) {
+      const input = numberField(id, value, {
+        min: min,
+        label: label + " in " + unitLabel(),
+      });
+      const equivalent = core.el("span", { class: "unit px", text: pixelEquivalent(value) });
       input.addEventListener("input", function () {
         apply(core.num(input.value));
         applyGeometry();
@@ -190,25 +242,24 @@
         applyGeometry();
         S.commit("edit " + id);
       });
+      frag.appendChild(core.el("div", { class: "field" }, [
+        core.el("label", { text: label }), input, equivalent,
+      ]));
+      return input;
     }
 
-    bind("i-x", function (v) { item.x = v; });
-    bind("i-y", function (v) { item.y = v; });
-    bind("i-w", function (v) {
+    geometryField("X", "i-x", item.x, function (v) { item.x = v; });
+    geometryField("Y", "i-y", item.y, function (v) { item.y = v; });
+    geometryField("W", "i-w", item.w, function (v) {
       item.w = v;
       const ratio = MN.items.ratioOf(item);
       if (state.view.aspect && ratio) item.h = item.w / ratio;
-    });
-    bind("i-h", function (v) {
+    }, 0.01);
+    geometryField("H", "i-h", item.h, function (v) {
       item.h = v;
       const ratio = MN.items.ratioOf(item);
       if (state.view.aspect && ratio) item.w = item.h * ratio;
-    });
-
-    frag.appendChild(row("X", xInput, unit));
-    frag.appendChild(row("Y", yInput, unit));
-    frag.appendChild(row("W", wInput, unit));
-    frag.appendChild(row("H", hInput, unit));
+    }, 0.01);
 
     const rotInput = numberField("i-rot", item.rotation || 0, { step: "any", label: "Rotation in degrees" });
     rotInput.addEventListener("input", function () {

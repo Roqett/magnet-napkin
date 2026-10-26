@@ -11,7 +11,8 @@ A project file is a normal JSON file. It holds the canvas, the assets it refers 
     "height": 719,
     "unit": "pt",
     "scale": 2,
-    "background": { "type": "color", "value": "#eef0f3" }
+    "background": { "type": "color", "value": "#eef0f3" },
+    "underlay": { "assetId": null, "opacity": 0.25 }
   },
   "assets": [
     {
@@ -94,6 +95,10 @@ A project file is a normal JSON file. It holds the canvas, the assets it refers 
 **`assets[].width` and `assets[].height` are the intrinsic pixels** of the file. They are used for the aspect ratio and for sizing a newly placed asset.
 
 **`assets[].embedded`** is `true` when the file carries the image itself, in `assets[].data` as a data URI. Saving with images is optional; without them the file stays small and the assets are relinked by name.
+
+**`canvas.background`** is what the board is painted on: `checker`, `color` or `image`. An `image` background names an asset in `assets` by id and is drawn behind everything.
+
+**`canvas.underlay`** is a faint reference image *under* the artwork, for tracing a layout against the real thing: an asset id and an opacity between 0.05 and 1. Like the grid and the guides, it is an editor aid — **it is never drawn into the exported PNG**. `assetId: null` means no underlay.
 
 **Unknown fields are ignored.** Numbers out of range are clamped, unknown kinds fall back to `image`, and a missing field takes its default. A file from a newer version still opens.
 

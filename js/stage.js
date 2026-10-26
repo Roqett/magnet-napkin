@@ -12,6 +12,7 @@
   const boardEl = core.$("#board");
   const gridEl = core.$("#grid");
   const bgEl = core.$("#bg");
+  const underlayEl = core.$("#underlay");
   const rulerTop = core.$("#ruler-top");
   const rulerLeft = core.$("#ruler-left");
   const cornerEl = core.$("#ruler-corner");
@@ -111,6 +112,23 @@
       }
     }
     bgEl.className = "checker";
+  }
+
+  /* A faint tracing of a reference image, under the artwork. It helps you
+     place things against the real thing. Like the grid and the guides, it is
+     an editor aid: it is never drawn into the exported PNG. */
+  function applyUnderlay() {
+    const underlay = state.canvas.underlay || { assetId: null, opacity: 0.25 };
+    const asset = underlay.assetId ? S.findAsset(underlay.assetId) : null;
+    if (!asset || !asset.url) {
+      underlayEl.style.backgroundImage = "";
+      underlayEl.style.opacity = "0";
+      return;
+    }
+    underlayEl.style.backgroundImage = "url(\"" + asset.url + "\")";
+    underlayEl.style.backgroundSize = "100% 100%";
+    underlayEl.style.backgroundRepeat = "no-repeat";
+    underlayEl.style.opacity = String(underlay.opacity == null ? 0.25 : underlay.opacity);
   }
 
   /* ---------- rulers ---------- */
@@ -239,6 +257,7 @@
 
     renderRulers(ppu);
     applyBackground();
+    applyUnderlay();
 
     if (zoomLabel) zoomLabel.textContent = Math.round(state.view.zoom * 100) + "%";
 
@@ -261,6 +280,7 @@
     fit: fit,
     applyView: applyView,
     applyBackground: applyBackground,
+    applyUnderlay: applyUnderlay,
     boardEl: boardEl,
   };
 
