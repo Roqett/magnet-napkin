@@ -16,7 +16,7 @@
     import: true,
     aspect: true,
     snap: false,
-    text: false,
+    text: true,
     note: false,
     newProject: false,
     save: false,
@@ -129,6 +129,9 @@
   function wireViewControls() {
     core.$('[data-act="import"]').addEventListener("click", function () {
       MN.assets.openFolderPicker();
+    });
+    core.$('[data-act="addtext"]').addEventListener("click", function () {
+      MN.interact.placeText();
     });
     core.$('[data-act="zoomin"]').addEventListener("click", function () {
       MN.stage.zoomIn(viewCentre());

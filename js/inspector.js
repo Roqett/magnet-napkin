@@ -134,11 +134,18 @@
     function bind(id, apply) {
       const input = core.$("#" + id);
       if (!input) return;
+      /* The input handler gives live feedback without touching the history;
+         the change handler is the one that commits, and it re-reads the field
+         so a value that arrived any other way is never lost. */
       input.addEventListener("input", function () {
         apply(core.num(input.value));
         applyGeometry();
       });
-      input.addEventListener("change", function () { S.commit("edit " + id); });
+      input.addEventListener("change", function () {
+        apply(core.num(input.value));
+        applyGeometry();
+        S.commit("edit " + id);
+      });
     }
 
     bind("i-x", function (v) { item.x = v; });
@@ -211,6 +218,143 @@
     return frag;
   }
 
+  /* ---------- text section ---------- */
+
+  function buildTextSection(item) {
+    const frag = document.createDocumentFragment();
+    frag.appendChild(section("Text"));
+
+    const textArea = core.el("textarea", {
+      id: "i-text",
+      rows: "3",
+      "aria-label": "Text content",
+    });
+    textArea.value = item.text == null ? "" : item.text;
+    const applyText = function () {
+      item.text = textArea.value;
+      MN.items.syncTextHeight(item);
+      MN.items.updateItem(item);
+      MN.inspector.updateValues();
+    };
+    textArea.addEventListener("input", applyText);
+    textArea.addEventListener("change", function () {
+      applyText();
+      S.commit("edit text");
+    });
+    frag.appendChild(core.el("div", { class: "field wide" }, [
+      core.el("label", { text: "Content" }), textArea,
+    ]));
+
+    const font = core.el("select", { id: "i-font", "aria-label": "Font family" },
+      MN.textlayout.FONT_NAMES.map(function (name) {
+        return core.el("option", { value: name, text: name });
+      }));
+    font.value = item.fontFamily;
+    font.addEventListener("change", function () {
+      item.fontFamily = font.value;
+      MN.items.syncTextHeight(item);
+      MN.items.updateItem(item);
+      S.commit("edit font");
+    });
+    frag.appendChild(row("Font", font));
+
+    const size = numberField("i-size", item.fontSize, { min: 0.5, step: "any", label: "Font size" });
+    const applySize = function () {
+      item.fontSize = Math.max(0.5, core.num(size.value));
+      MN.items.syncTextHeight(item);
+      MN.items.updateItem(item);
+    };
+    size.addEventListener("input", applySize);
+    size.addEventListener("change", function () {
+      applySize();
+      S.commit("edit font size");
+    });
+    frag.appendChild(row("Size", size, unitLabel()));
+
+    const weight = core.el("select", { id: "i-weight", "aria-label": "Font weight" }, [
+      core.el("option", { value: "300", text: "Light" }),
+      core.el("option", { value: "400", text: "Regular" }),
+      core.el("option", { value: "600", text: "Semibold" }),
+      core.el("option", { value: "700", text: "Bold" }),
+    ]);
+    weight.value = String(item.fontWeight || 400);
+    weight.addEventListener("change", function () {
+      item.fontWeight = core.num(weight.value);
+      MN.items.syncTextHeight(item);
+      MN.items.updateItem(item);
+      S.commit("edit font weight");
+    });
+    frag.appendChild(row("Weight", weight));
+
+    const colour = core.el("input", {
+      id: "i-color", type: "color", value: item.color || "#111111", "aria-label": "Text colour",
+    });
+    colour.addEventListener("input", function () {
+      item.color = colour.value;
+      MN.items.updateItem(item);
+    });
+    colour.addEventListener("change", function () {
+      item.color = colour.value;
+      MN.items.updateItem(item);
+      S.commit("edit text colour");
+    });
+    frag.appendChild(row("Colour", colour));
+
+    const hasBackground = item.background && item.background !== "transparent";
+    const bgMode = core.el("select", { id: "i-bgmode", "aria-label": "Text background" }, [
+      core.el("option", { value: "transparent", text: "None" }),
+      core.el("option", { value: "colour", text: "Colour" }),
+    ]);
+    bgMode.value = hasBackground ? "colour" : "transparent";
+    bgMode.addEventListener("change", function () {
+      item.background = bgMode.value === "colour" ? (item.color || "#e8eaee") : "transparent";
+      if (bgMode.value === "colour" && item.color === item.background) item.background = "#e8eaee";
+      MN.items.updateItem(item);
+      S.commit("edit text background");
+      render();
+    });
+    frag.appendChild(row("Backdrop", bgMode));
+
+    if (hasBackground) {
+      const bgColour = core.el("input", {
+        id: "i-textbg", type: "color", value: item.background, "aria-label": "Text background colour",
+      });
+      bgColour.addEventListener("input", function () {
+        item.background = bgColour.value;
+        MN.items.updateItem(item);
+      });
+      bgColour.addEventListener("change", function () { S.commit("edit text background"); });
+      frag.appendChild(row("Colour", bgColour));
+    }
+
+    const align = core.el("select", { id: "i-align", "aria-label": "Text alignment" }, [
+      core.el("option", { value: "left", text: "Left" }),
+      core.el("option", { value: "center", text: "Centre" }),
+      core.el("option", { value: "right", text: "Right" }),
+    ]);
+    align.value = item.align || "left";
+    align.addEventListener("change", function () {
+      item.align = align.value;
+      MN.items.updateItem(item);
+      S.commit("edit alignment");
+    });
+    frag.appendChild(row("Align", align));
+
+    const auto = core.el("input", { id: "i-auto", type: "checkbox", "aria-label": "Auto height" });
+    auto.checked = item.autoHeight !== false;
+    auto.addEventListener("change", function () {
+      item.autoHeight = auto.checked;
+      if (item.autoHeight) MN.items.syncTextHeight(item);
+      MN.items.updateItem(item);
+      S.commit("edit auto height");
+    });
+    frag.appendChild(core.el("div", { class: "field" }, [
+      core.el("label", { text: "Auto height" }), auto, core.el("span", { class: "unit" }),
+    ]));
+
+    return frag;
+  }
+
   /* ---------- selection placeholder ---------- */
 
   function buildHint() {
@@ -232,8 +376,12 @@
     bodyEl.appendChild(section("Selection"));
 
     const item = S.selectedItem();
-    if (item) bodyEl.appendChild(buildItemSection(item));
-    else bodyEl.appendChild(buildHint());
+    if (item) {
+      bodyEl.appendChild(buildItemSection(item));
+      if (item.kind === "text") bodyEl.appendChild(buildTextSection(item));
+    } else {
+      bodyEl.appendChild(buildHint());
+    }
 
     if (activeId) {
       const next = core.$("#" + activeId, bodyEl);

@@ -55,6 +55,21 @@
     return { x: c.width / 2, y: c.height / 2 };
   }
 
+  /* ---------- text ---------- */
+
+  function placeText(text) {
+    const item = S.newTextItem(text == null ? "Text" : text);
+    item.x = (state.canvas.width - item.w) / 2;
+    item.y = (state.canvas.height - item.h) / 2;
+    MN.items.syncTextHeight(item);
+    state.items.push(item);
+    S.commit("add text");
+    S.select("item", item.id);
+    MN.app.setStatus("Text added — type in the inspector.");
+    setTimeout(function () { MN.inspector.focusField("text"); }, 0);
+    return item;
+  }
+
   /* ---------- dragging ---------- */
 
   function startDrag(e, item, mode) {
@@ -106,16 +121,22 @@
       item.x = drag.x0 + lx;
       item.y = drag.y0 + ly;
     } else if (drag.mode === "resize") {
-      let nw = drag.w0 + lx;
-      let nh = drag.h0 + ly;
-      const ratio = drag.ratio;
-      if (state.view.aspect && ratio) {
-        /* Whichever edge moved further is the one that drives. */
-        if (Math.abs(nw - drag.w0) >= Math.abs(nh - drag.h0)) nh = nw / ratio;
-        else nw = nh * ratio;
+      if (item.kind === "text" && item.autoHeight) {
+        /* A text box resizes by its wrap width; the height follows the text. */
+        item.w = Math.max(MIN_SIZE, drag.w0 + lx);
+        MN.items.syncTextHeight(item);
+      } else {
+        let nw = drag.w0 + lx;
+        let nh = drag.h0 + ly;
+        const ratio = drag.ratio;
+        if (state.view.aspect && ratio) {
+          /* Whichever edge moved further is the one that drives. */
+          if (Math.abs(nw - drag.w0) >= Math.abs(nh - drag.h0)) nh = nw / ratio;
+          else nw = nh * ratio;
+        }
+        item.w = nw;
+        item.h = nh;
       }
-      item.w = nw;
-      item.h = nh;
     } else if (drag.mode === "rotate") {
       const a = Math.atan2(p.y - drag.centre.y, p.x - drag.centre.x);
       let deg = drag.rot0 + (a - drag.angle0) * 180 / Math.PI;
@@ -272,6 +293,7 @@
 
   MN.interact = {
     placeAsset: placeAsset,
+    placeText: placeText,
     clampItem: clampItem,
     naturalSize: naturalSize,
   };

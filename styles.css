@@ -200,6 +200,19 @@ input[type="search"] { width: 100%; }
 .row { display: flex; gap: 6px; margin: 8px 0; }
 .row button { flex: 1 1 auto; font-size: 11px; padding: 5px 4px; }
 
+.field.wide { grid-template-columns: 58px minmax(0, 1fr); align-items: start; }
+.field.wide label { padding-top: 5px; }
+.field textarea {
+  width: 100%;
+  min-height: 58px;
+  resize: vertical;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 5px 6px;
+  font: 12px/1.4 var(--font);
+}
+
 .panelhead {
   display: flex;
   align-items: baseline;
@@ -451,6 +464,19 @@ body.dropping::after {
   z-index: 2;
 }
 .magnet.selected .tag { display: block; }
+
+/* Text items: one element per measured line, so the browser never re-wraps
+   what the exporter will draw. */
+.text-item { cursor: default; }
+.text-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  white-space: pre;
+  letter-spacing: 0;
+  word-break: keep-all;
+}
+.text-body .tl { white-space: pre; }
 
 /* ---------- handoff dialog ---------- */
 

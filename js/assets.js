@@ -218,10 +218,15 @@
 
   /* ---------- the tray ---------- */
 
+  /* Group by the folder inside the imported root: dropping
+     "gt40-assets/gauges/tach.png" groups it under "gauges", not under the
+     name of the folder that was dropped. */
   function groupOf(path) {
-    const slash = path.indexOf("/");
-    if (slash < 0) return "Loose files";
-    return path.slice(0, slash);
+    const parts = String(path || "").split("/");
+    if (parts.length < 3) return "Loose files";
+    parts.pop();
+    parts.shift();
+    return parts.join("/") || "Loose files";
   }
 
   function renderTray() {

@@ -44,7 +44,7 @@
 
   function makeEl(item) {
     const el = core.el("div", {
-      class: "magnet",
+      class: "magnet" + (item.kind === "text" ? " text-item" : ""),
       dataset: { id: item.id },
       tabindex: "0",
       role: "button",
@@ -53,11 +53,64 @@
     if (item.kind === "image") {
       const asset = S.findAsset(item.assetId);
       el.appendChild(core.el("img", { src: asset ? asset.url : "", alt: "", draggable: "false" }));
+    } else if (item.kind === "text") {
+      el.appendChild(core.el("div", { class: "text-body" }));
     }
     el.appendChild(core.el("div", { class: "handle", title: "Resize" }));
     el.appendChild(core.el("div", { class: "rot", title: "Rotate — hold Shift for 15° steps" }));
     el.appendChild(core.el("div", { class: "tag" }));
     return el;
+  }
+
+  /* Draw the text as the layout helper measured it: one element per line, so
+     the browser never re-wraps what the exporter will draw. */
+  function renderTextBody(el, item, p) {
+    const body = el.querySelector(".text-body");
+    if (!body) return null;
+
+    const layout = MN.textlayout.layoutText({
+      text: item.text,
+      fontFamily: item.fontFamily,
+      fontSize: item.fontSize,
+      fontWeight: item.fontWeight,
+      width: item.w,
+      align: item.align,
+    });
+
+    const key = [item.text, item.fontFamily, item.fontSize, item.fontWeight, item.w, item.align].join("|");
+    if (body._key !== key) {
+      body._key = key;
+      body.textContent = "";
+      for (const line of layout.lines) {
+        body.appendChild(core.el("div", { class: "tl", text: line.text }));
+      }
+      body.style.fontFamily = layout.fontStack;
+      body.style.fontSize = layout.fontSize * p + "px";
+      body.style.lineHeight = layout.lineHeight * p + "px";
+      body.style.fontWeight = layout.fontWeight;
+      body.style.textAlign = layout.align;
+    }
+
+    body.style.background = (item.background && item.background !== "transparent")
+      ? item.background
+      : "transparent";
+    body.style.color = item.color || "#111111";
+
+    return layout;
+  }
+
+  /* Keep an auto-height text box exactly as tall as its content. */
+  function syncTextHeight(item) {
+    if (!item || item.kind !== "text" || !item.autoHeight) return;
+    const layout = MN.textlayout.layoutText({
+      text: item.text,
+      fontFamily: item.fontFamily,
+      fontSize: item.fontSize,
+      fontWeight: item.fontWeight,
+      width: item.w,
+      align: item.align,
+    });
+    if (Math.abs(layout.height - item.h) > 0.0001) item.h = layout.height;
   }
 
   function applyStyle(el, item) {
@@ -72,6 +125,10 @@
     el.classList.toggle("selected", isSelected(item.id));
     const tag = el.querySelector(".tag");
     if (tag) tag.textContent = tagText(item);
+    if (item.kind === "text") {
+      renderTextBody(el, item, p);
+      return;
+    }
     const img = el.querySelector("img");
     if (img) {
       const asset = S.findAsset(item.assetId);
@@ -126,6 +183,7 @@
     labelFor: labelFor,
     ratioOf: ratioOf,
     tagText: tagText,
+    syncTextHeight: syncTextHeight,
   };
 
   if (document.readyState === "loading") {
