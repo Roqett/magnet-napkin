@@ -15,7 +15,7 @@
     zoomfit: true,
     import: true,
     aspect: true,
-    snap: false,
+    snap: true,
     text: true,
     note: true,
     note: false,

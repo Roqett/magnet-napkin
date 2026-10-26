@@ -142,8 +142,10 @@
     const ly = dx * Math.sin(rad) + dy * Math.cos(rad);
 
     if (drag.mode === "move") {
-      item.x = drag.x0 + lx;
-      item.y = drag.y0 + ly;
+      const snapped = e.altKey ? { x: drag.x0 + lx, y: drag.y0 + ly, guides: [] } : MN.snap.snapMove(item, drag.x0 + lx, drag.y0 + ly);
+      item.x = snapped.x;
+      item.y = snapped.y;
+      drag.guides = snapped.guides;
     } else if (drag.mode === "resize") {
       if (item.kind !== "image" && item.autoHeight) {
         /* A text box resizes by its wrap width; the height follows the text. */
@@ -158,6 +160,12 @@
           if (Math.abs(nw - drag.w0) >= Math.abs(nh - drag.h0)) nh = nw / ratio;
           else nw = nh * ratio;
         }
+        if (!e.altKey) {
+          const snapped = MN.snap.snapResize(item, nw, nh);
+          nw = snapped.w;
+          nh = snapped.h;
+          drag.guides = snapped.guides;
+        }
         item.w = nw;
         item.h = nh;
       }
@@ -171,6 +179,7 @@
     clampItem(item);
     MN.items.updateItem(item);
     MN.inspector.updateValues();
+    MN.snap.renderGuides(drag.guides);
   }
 
   function onUp() {
@@ -178,6 +187,7 @@
     const mode = drag.mode;
     drag = null;
     window.removeEventListener("pointermove", onMove);
+    MN.snap.clearGuides();
     S.commit(mode);
     MN.inspector.render();
   }

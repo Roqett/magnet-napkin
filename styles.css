@@ -517,6 +517,11 @@ body.dropping::after {
   z-index: 4;
 }
 
+/* Snapping guides */
+.guide { position: absolute; background: var(--guide); opacity: .85; }
+.guide.v { top: 0; bottom: 0; width: 1px; }
+.guide.h { left: 0; right: 0; height: 1px; }
+
 /* ---------- handoff dialog ---------- */
 
 dialog {
