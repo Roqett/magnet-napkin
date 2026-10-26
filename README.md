@@ -18,6 +18,10 @@ Every layout starts as a pile of assets and a rough arrangement. Magnet Napkin i
 
 No accounts. No cloud. No install. No build step.
 
+## The first board
+
+The first project is the **RED-LINE GT40 cockpit** at 214 × 719 pt — a real panel with real dial, toggle and label assets. Screenshots of the board and the exported handoff will land here once the first layout is settled. RED-LINE itself is a separate private project; this public repo contains none of its artwork.
+
 ## Planned shape
 
 A single static page — HTML, CSS and vanilla JavaScript — that runs from disk or GitHub Pages. Assets stay local. The current project and its images are cached in the browser so reopening the page restores the board.
