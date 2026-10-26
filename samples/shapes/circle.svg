@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <title>Concentric circles</title>
+  <circle cx="200" cy="200" r="190" fill="#2563eb"/>
+  <circle cx="200" cy="200" r="120" fill="#60a5fa"/>
+  <circle cx="200" cy="200" r="55" fill="#dbeafe"/>
+</svg>

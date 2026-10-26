@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 300" width="800" height="300">
+  <title>Wide striped panel</title>
+  <rect width="800" height="300" fill="#334155"/>
+  <g fill="#475569">
+    <rect x="80" width="80" height="300"/>
+    <rect x="240" width="80" height="300"/>
+    <rect x="400" width="80" height="300"/>
+    <rect x="560" width="80" height="300"/>
+    <rect x="720" width="80" height="300"/>
+  </g>
+  <rect x="4" y="4" width="792" height="292" fill="none" stroke="#e2e8f0" stroke-width="6"/>
+</svg>

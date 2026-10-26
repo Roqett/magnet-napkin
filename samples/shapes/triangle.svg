@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <title>Triangle</title>
+  <polygon points="200,40 360,340 40,340" fill="#16a34a"/>
+  <polygon points="200,140 280,290 120,290" fill="#bbf7d0"/>
+</svg>
