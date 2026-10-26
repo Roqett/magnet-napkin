@@ -128,7 +128,7 @@
     const unit = unitLabel();
 
     frag.appendChild(section("Selected"));
-    frag.appendChild(core.el("p", { class: "selected-name", text: MN.items.labelFor(item) }));
+    frag.appendChild(core.el("p", { class: "selected-name", text: MN.items.nameFor(item) }));
 
     const xInput = numberField("i-x", item.x, { label: "X position" });
     const yInput = numberField("i-y", item.y, { label: "Y position" });

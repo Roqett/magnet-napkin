@@ -35,13 +35,26 @@
     return !!(state.selection && state.selection.id === id);
   }
 
-  function labelFor(item) {
+  /* The plain name, for the inspector and the notes brief. */
+  function nameFor(item) {
     if (item.kind === "image") {
       const asset = S.findAsset(item.assetId);
       return asset ? asset.name : "Missing image";
     }
     if (item.kind === "text") return item.text || "Text";
     if (item.kind === "note") return "Note";
+    return item.kind;
+  }
+
+  /* The accessible name. It has to contain the visible text of the element,
+     so the whole text of a text box or a note is used, not a summary. */
+  function labelFor(item) {
+    if (item.kind === "image") {
+      const asset = S.findAsset(item.assetId);
+      return "Image: " + (asset ? asset.name : "missing file");
+    }
+    if (item.kind === "text") return "Text: " + (item.text || "empty");
+    if (item.kind === "note") return "Note: " + ((item.text || "empty").replace(/\s+/g, " ").trim());
     return item.kind;
   }
 
@@ -94,10 +107,18 @@
     } else {
       el.appendChild(core.el("div", { class: "text-body" }));
     }
-    if (isNote) el.appendChild(core.el("div", { class: "badge", text: NOTE.badgeText }));
-    el.appendChild(core.el("div", { class: "handle", title: "Resize" }));
-    el.appendChild(core.el("div", { class: "rot", title: "Rotate — hold Shift for 15° steps" }));
-    el.appendChild(core.el("div", { class: "tag" }));
+    if (isNote) el.appendChild(core.el("div", { class: "badge", text: NOTE.badgeText, "aria-hidden": "true" }));
+    el.appendChild(core.el("div", { class: "handle", title: "Resize", "aria-hidden": "true" }));
+    el.appendChild(core.el("div", { class: "rot", title: "Rotate — hold Shift for 15° steps", "aria-hidden": "true" }));
+    /* The dimension tag repeats what the inspector already says, so it is
+       decoration for the eye and not part of the accessible name. */
+    el.appendChild(core.el("div", { class: "tag", "aria-hidden": "true" }));
+
+    /* Focusing an object selects it, so the arrow keys nudge whatever the
+       keyboard has landed on. */
+    el.addEventListener("focus", function () {
+      S.select(isNote ? "note" : "item", item.id);
+    });
     return el;
   }
 
@@ -197,26 +218,28 @@
   }
 
   /* Keyed render: create what is new, drop what is gone, and keep the DOM
-     order in step with the array order, which is the z-order. */
+     order in step with the array order, which is the z-order.
+
+     Elements are only moved when their position actually changed. Moving an
+     element that has focus would blur it and break keyboard navigation. */
   function renderLayer(collection, layer, isNote) {
     if (!layer) return;
-    const seen = new Set();
+    let index = 0;
     for (const item of collection) {
-      seen.add(item.id);
       let el = els.get(item.id);
       if (!el) {
         el = makeEl(item, isNote);
         els.set(item.id, el);
       }
       applyStyle(el, item, isNote);
-      layer.appendChild(el);
+      const current = layer.children[index];
+      if (current !== el) layer.insertBefore(el, current || null);
+      index += 1;
     }
-    for (const pair of Array.from(els)) {
-      if (pair[1].parentNode !== layer) continue;
-      if (!seen.has(pair[0])) {
-        pair[1].remove();
-        els.delete(pair[0]);
-      }
+    while (layer.children.length > index) {
+      const el = layer.lastElementChild;
+      els.delete(el.dataset.id);
+      layer.removeChild(el);
     }
   }
 
@@ -246,6 +269,7 @@
     updateItem: updateItem,
     elementFor: elementFor,
     labelFor: labelFor,
+    nameFor: nameFor,
     ratioOf: ratioOf,
     tagText: tagText,
     syncTextHeight: syncTextHeight,

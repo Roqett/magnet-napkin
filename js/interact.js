@@ -265,6 +265,17 @@
       placeAsset(asset, canvasCentre().x, canvasCentre().y);
     });
 
+    /* The tray works from the keyboard too. */
+    tray.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+      const row = e.target.closest ? e.target.closest(".tray-item") : null;
+      if (!row) return;
+      e.preventDefault();
+      const asset = S.findAsset(row.dataset.id);
+      if (!asset) return;
+      placeAsset(asset, canvasCentre().x, canvasCentre().y);
+    });
+
     tray.addEventListener("dragstart", function (e) {
       const row = e.target.closest ? e.target.closest(".tray-item") : null;
       if (!row) return;

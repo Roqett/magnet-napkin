@@ -21,7 +21,7 @@
   function targetLabel(note) {
     if (!note.targetId) return null;
     const item = S.findItem(note.targetId);
-    return item ? MN.items.labelFor(item) : null;
+    return item ? MN.items.nameFor(item) : null;
   }
 
   function positionText(note) {

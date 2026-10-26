@@ -248,6 +248,8 @@
         const row = core.el("div", {
           class: "tray-item",
           draggable: "true",
+          tabindex: "0",
+          role: "button",
           title: asset.path,
           dataset: { id: asset.id, search: (asset.name + " " + asset.path).toLowerCase() },
         });
