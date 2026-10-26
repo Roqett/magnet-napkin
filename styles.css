@@ -1,17 +1,19 @@
 /* Magnet Napkin — chrome.
-   The canvas is the star: everything else stays quiet and neutral. */
+   The canvas is the star: everything else stays quiet and neutral.
+   Dark by default. The light palette lives under [data-theme="light"],
+   one attribute away. */
 
 :root {
-  --bg: #0e1014;
-  --panel: #15181e;
-  --panel2: #1c2029;
-  --panel3: #232833;
+  --bg: #090b10;
+  --panel: #14161d;
+  --panel2: #1b1e26;
+  --panel3: #252a35;
   --line: #272c37;
-  --line2: #333a47;
-  --text: #e8eaee;
-  --muted: #8a909c;
-  --accent: #5b9dff;
-  --accent-ink: #0b1220;
+  --line2: #39404f;
+  --text: #e9ebf0;
+  --muted: #9aa2b0;
+  --accent: #6f9bff;
+  --accent-ink: #08101f;
   --canvas: #eef0f3;
   --guide: #ff4d4d;
   --note: #fff3b0;
@@ -21,22 +23,41 @@
   --ruler-left: 46px;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* The glass. A translucent panel over the wallpaper, with a hairline and a
+     specular edge along the top. */
+  --glass: rgba(23, 25, 34, .66);
+  --glass-line: rgba(255, 255, 255, .09);
+  --glass-hi: rgba(255, 255, 255, .07);
+  --glass-shadow: 0 20px 50px rgba(0, 0, 0, .45), 0 2px 8px rgba(0, 0, 0, .3);
+  --control: rgba(255, 255, 255, .06);
+  --control-hover: rgba(255, 255, 255, .12);
+  --control-line: rgba(255, 255, 255, .10);
+  --radius: 14px;
+  --blur: 24px;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #eef0f3;
-    --panel: #ffffff;
-    --panel2: #f4f6f9;
-    --panel3: #e9edf2;
-    --line: #dde1e8;
-    --line2: #c7cedb;
-    --text: #1a1d23;
-    --muted: #5b6472;
-    --accent: #2563eb;
-    --accent-ink: #ffffff;
-    --canvas: #ffffff;
-  }
+/* The light palette. Not applied by default; set data-theme="light" on the
+   root element to use it. */
+[data-theme="light"] {
+  --bg: #e8ebf0;
+  --panel: #ffffff;
+  --panel2: #f3f5f9;
+  --panel3: #e7ecf2;
+  --line: #dde1e8;
+  --line2: #c2cad6;
+  --text: #171a20;
+  --muted: #5b6472;
+  --accent: #2563eb;
+  --accent-ink: #ffffff;
+  --canvas: #ffffff;
+  --glass: rgba(255, 255, 255, .74);
+  --glass-line: rgba(15, 20, 30, .08);
+  --glass-hi: rgba(255, 255, 255, .7);
+  --glass-shadow: 0 18px 44px rgba(20, 30, 50, .16), 0 2px 8px rgba(20, 30, 50, .08);
+  --control: rgba(15, 20, 30, .05);
+  --control-hover: rgba(15, 20, 30, .10);
+  --control-line: rgba(15, 20, 30, .10);
 }
 
 * { box-sizing: border-box; }
@@ -51,37 +72,89 @@ html, body {
   -webkit-text-size-adjust: 100%;
 }
 
+/* People who asked for less glass get less glass. */
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass: #14161d;
+    --glass-line: #272c37;
+    --glass-hi: transparent;
+    --glass-shadow: none;
+  }
+  [data-theme="light"] {
+    --glass: #ffffff;
+    --glass-line: #dde1e8;
+    --glass-shadow: none;
+  }
+}
+
 button, select, input { font: inherit; color: inherit; }
 
 button {
-  background: var(--panel2);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 5px 9px;
+  background: var(--control);
+  border: 1px solid var(--control-line);
+  border-radius: 8px;
+  padding: 5px 10px;
   cursor: pointer;
   white-space: nowrap;
+  box-shadow: inset 0 1px 0 var(--glass-hi);
+  transition: background .12s ease, border-color .12s ease;
 }
-button:hover { background: var(--panel3); border-color: var(--line2); }
+button:hover { background: var(--control-hover); border-color: var(--control-line); }
 button:active { transform: translateY(0.5px); }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
-button.primary:hover { filter: brightness(1.08); }
-button.quiet { background: transparent; }
-button[disabled] { opacity: .4; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; box-shadow: 0 4px 14px rgba(111, 155, 255, .28); }
+button.primary:hover { filter: brightness(1.08); background: var(--accent); }
+button.quiet { background: transparent; border-color: transparent; box-shadow: none; }
+button.quiet:hover { background: var(--control); }
+button[disabled] { opacity: .38; cursor: default; }
 
 input[type="number"], input[type="text"], input[type="search"], select {
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  padding: 4px 6px;
+  background: var(--control);
+  border: 1px solid var(--control-line);
+  border-radius: 8px;
+  padding: 5px 7px;
   min-width: 0;
+  transition: border-color .12s ease, background .12s ease;
+}
+input[type="number"]:focus, input[type="text"]:focus, input[type="search"]:focus, select:focus {
+  border-color: var(--accent);
+  background: var(--control-hover);
 }
 input[type="number"] { width: 72px; font-variant-numeric: tabular-nums; }
 input[type="search"] { width: 100%; }
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 22px;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 13px) 52%, calc(100% - 8px) 52%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+input[type="color"] {
+  background: var(--control);
+  border: 1px solid var(--control-line);
+  border-radius: 8px;
+  padding: 2px;
+  height: 26px;
+}
 
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* Thin scrollbars, to match the rest. */
+* { scrollbar-width: thin; scrollbar-color: var(--line2) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--line2);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--muted); background-clip: content-box; }
 
 /* ---------- shell ---------- */
 
@@ -89,7 +162,31 @@ input[type="search"] { width: 100%; }
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr) 264px;
   grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
   height: 100dvh;
+  /* The wallpaper the glass sits on. */
+  background:
+    radial-gradient(1100px 780px at 6% -14%, rgba(111, 155, 255, .30), transparent 62%),
+    radial-gradient(900px 700px at 106% -8%, rgba(176, 108, 255, .24), transparent 58%),
+    radial-gradient(820px 640px at 64% 118%, rgba(0, 196, 184, .20), transparent 60%),
+    radial-gradient(700px 520px at 22% 92%, rgba(255, 120, 90, .10), transparent 62%),
+    var(--bg);
+}
+
+/* The glass material: translucent, blurred, with a hairline and a specular
+   edge along the top. */
+#toolbar, #tray, #inspector {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
+  backdrop-filter: blur(var(--blur)) saturate(180%);
+  border: 1px solid var(--glass-line);
+  box-shadow: inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+  border-radius: var(--radius);
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  #toolbar, #tray, #inspector { background: var(--panel); }
 }
 
 #toolbar {
@@ -97,9 +194,7 @@ input[type="search"] { width: 100%; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
+  padding: 7px 12px;
   overflow-x: auto;
   overflow-y: hidden;
   white-space: nowrap;
@@ -152,12 +247,10 @@ input[type="search"] { width: 100%; }
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background: var(--panel);
+  overflow: hidden;
 }
-#tray { border-right: 1px solid var(--line); }
-#inspector { border-left: 1px solid var(--line); overflow: auto; }
 
-#inspector-body { padding: 12px; }
+#inspector-body { padding: 12px; overflow: auto; }
 
 .sec-head {
   margin: 14px 0 8px;
@@ -217,12 +310,13 @@ input[type="search"] { width: 100%; }
   width: 100%;
   min-height: 58px;
   resize: vertical;
-  background: var(--bg);
-  border: 1px solid var(--line);
-  border-radius: 5px;
-  padding: 5px 6px;
+  background: var(--control);
+  border: 1px solid var(--control-line);
+  border-radius: 8px;
+  padding: 6px 7px;
   font: 12px/1.4 var(--font);
 }
+.field textarea:focus { border-color: var(--accent); }
 
 .panelhead {
   display: flex;
@@ -258,15 +352,15 @@ input[type="search"] { width: 100%; }
   cursor: grab;
   border: 1px solid transparent;
 }
-.tray-item:hover { background: var(--panel2); border-color: var(--line); }
+.tray-item:hover { background: var(--control); border-color: var(--control-line); }
 .tray-item:active { cursor: grabbing; }
 .tray-item:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .tray-item img {
   width: 38px; height: 38px;
   object-fit: contain;
   background: #f6f7f9;
-  border: 1px solid var(--line);
-  border-radius: 4px;
+  border: 1px solid var(--control-line);
+  border-radius: 6px;
   flex: none;
 }
 .tray-item .t { min-width: 0; }
@@ -316,10 +410,9 @@ body.dropping::after {
 #viewport {
   flex: 1;
   overflow: auto;
-  padding: 24px 24px 48px;
-  background:
-    radial-gradient(1200px 700px at 50% 0%, color-mix(in srgb, var(--panel) 70%, transparent) 0%, transparent 70%),
-    var(--bg);
+  padding: 22px;
+  /* The wallpaper shows through: the board is the only opaque thing here. */
+  background: transparent;
 }
 
 #stage {
@@ -333,10 +426,12 @@ body.dropping::after {
   position: absolute;
   left: 0; top: 0;
   width: var(--ruler-left); height: var(--ruler-top);
-  background: var(--panel);
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  border-radius: 0 0 4px 0;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
+  backdrop-filter: blur(var(--blur)) saturate(180%);
+  border-right: 1px solid var(--glass-line);
+  border-bottom: 1px solid var(--glass-line);
+  border-radius: 0 0 8px 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -346,13 +441,15 @@ body.dropping::after {
 
 .ruler {
   position: absolute;
-  background: var(--panel);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
+  backdrop-filter: blur(var(--blur)) saturate(180%);
   color: var(--muted);
   font: 10px/1 var(--mono);
   overflow: hidden;
 }
-#ruler-top { left: var(--ruler-left); top: 0; height: var(--ruler-top); border-bottom: 1px solid var(--line); }
-#ruler-left { left: 0; top: var(--ruler-top); width: var(--ruler-left); border-right: 1px solid var(--line); }
+#ruler-top { left: var(--ruler-left); top: 0; height: var(--ruler-top); border-bottom: 1px solid var(--glass-line); border-radius: 0 0 8px 8px; }
+#ruler-left { left: 0; top: var(--ruler-top); width: var(--ruler-left); border-right: 1px solid var(--glass-line); border-radius: 0 8px 8px 0; }
 
 .ruler .tick { position: absolute; background: var(--line2); }
 #ruler-top .tick { bottom: 0; width: 1px; height: 6px; }
@@ -371,9 +468,9 @@ body.dropping::after {
   position: relative;
   overflow: hidden;
   background: var(--canvas);
-  border: 1px solid var(--line2);
-  border-radius: 3px;
-  box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
+  border: 1px solid var(--glass-line);
+  border-radius: 8px;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, .45), 0 0 0 1px rgba(0, 0, 0, .25);
 }
 
 #bg, #grid, #items, #notes, #guides, #underlay { position: absolute; inset: 0; }
@@ -485,6 +582,7 @@ body.dropping::after {
   pointer-events: none;
   z-index: 2;
 }
+.magnet .tag::before { content: var(--tag-text, ""); }
 .magnet.selected .tag { display: block; }
 
 /* Text items: one element per measured line, so the browser never re-wraps
@@ -527,6 +625,7 @@ body.dropping::after {
   pointer-events: none;
   z-index: 4;
 }
+.magnet.note .badge::before { content: "NOTE"; }
 
 /* Snapping guides */
 .guide { position: absolute; background: var(--guide); opacity: .85; }
@@ -566,16 +665,18 @@ body.dropping::after {
 /* ---------- handoff dialog ---------- */
 
 dialog {
-  border: 1px solid var(--line2);
-  border-radius: 10px;
-  background: var(--panel);
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(180%);
+  backdrop-filter: blur(var(--blur)) saturate(180%);
+  border: 1px solid var(--glass-line);
+  border-radius: 16px;
   color: var(--text);
-  padding: 20px;
+  padding: 22px;
   max-width: 460px;
   width: calc(100% - 32px);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, .45);
+  box-shadow: inset 0 1px 0 var(--glass-hi), 0 34px 90px rgba(0, 0, 0, .55);
 }
-dialog::backdrop { background: rgba(0, 0, 0, .5); }
+dialog::backdrop { background: rgba(4, 6, 11, .58); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 dialog h2 { margin: 0 0 4px; font-size: 15px; }
 dialog p { margin: 0 0 14px; font-size: 12px; }
 

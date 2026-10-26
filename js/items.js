@@ -47,15 +47,16 @@
   }
 
   /* The accessible name. It has to contain the visible text of the element,
-     so the whole text of a text box or a note is used, not a summary. */
+     so the whole text of a text box or a note is used, not a summary — and
+     the badge's word comes first, because that is where it is on screen. */
   function labelFor(item) {
     if (item.kind === "image") {
       const asset = S.findAsset(item.assetId);
-      return "Image: " + (asset ? asset.name : "missing file");
+      return "Image: " + (asset ? asset.name : "Missing image");
     }
-    if (item.kind === "text") return "Text: " + (item.text || "empty");
-    if (item.kind === "note") return "Note: " + ((item.text || "empty").replace(/\s+/g, " ").trim());
-    return item.kind;
+    /* Text and notes name themselves from their rendered lines, so the
+       accessible name carries the same line breaks as the visible text. */
+    return "";
   }
 
   function tagText(item) {
@@ -96,6 +97,10 @@
       role: "button",
       "aria-label": labelFor(item),
     });
+    /* The badge comes first in the DOM so that the word is read before the
+       note, the same order as on screen. It is absolutely positioned, so its
+       place in the DOM does not move it. */
+    if (isNote) el.appendChild(core.el("div", { class: "badge", "aria-hidden": "true" }));
     if (item.kind === "image") {
       const asset = S.findAsset(item.assetId);
       if (asset && asset.url) {
@@ -107,7 +112,6 @@
     } else {
       el.appendChild(core.el("div", { class: "text-body" }));
     }
-    if (isNote) el.appendChild(core.el("div", { class: "badge", text: NOTE.badgeText, "aria-hidden": "true" }));
     el.appendChild(core.el("div", { class: "handle", title: "Resize", "aria-hidden": "true" }));
     el.appendChild(core.el("div", { class: "rot", title: "Rotate — hold Shift for 15° steps", "aria-hidden": "true" }));
     /* The dimension tag repeats what the inspector already says, so it is
@@ -134,7 +138,10 @@
       body._key = key;
       body.textContent = "";
       for (const line of layout.lines) {
-        body.appendChild(core.el("div", { class: "tl", text: line.text }));
+        /* The lines are a rendering of the text. The object names itself with
+           the whole text, so the lines are hidden from the accessibility
+           tree and nothing is announced twice. */
+        body.appendChild(core.el("div", { class: "tl", text: line.text, "aria-hidden": "true" }));
       }
       body.style.fontFamily = layout.fontStack;
       body.style.fontSize = layout.fontSize * p + "px";
@@ -147,6 +154,13 @@
       ? item.background
       : "transparent";
     body.style.color = item.color || "#111111";
+
+    /* The name is the text as the author wrote it, not as it happens to
+       wrap: the lines are a rendering of it, and a screen reader should hear
+       the sentence, not the line breaks. */
+    const spoken = (item.text || "").replace(/\s+/g, " ").trim();
+    const prefix = item.kind === "note" ? NOTE.badgeText + " " : "Text: ";
+    el.setAttribute("aria-label", prefix + (spoken || "empty"));
 
     return layout;
   }
@@ -172,7 +186,11 @@
     el.classList.toggle("locked", !!item.locked);
     el.classList.toggle("selected", isSelected(item.id));
     const tag = el.querySelector(".tag");
-    if (tag) tag.textContent = tagText(item);
+    if (tag) {
+      /* The tag's wording goes into a custom property and is drawn by CSS, so
+         it never becomes part of the element's text. */
+      tag.style.setProperty("--tag-text", '"' + tagText(item).replace(/"/g, "'") + '"');
+    }
 
     if (isNote) {
       const body = el.querySelector(".text-body");

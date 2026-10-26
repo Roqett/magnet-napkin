@@ -13,12 +13,14 @@ Every layout starts as a pile of assets and a rough arrangement. Magnet Napkin i
 - **drop a folder of images in** — drag it onto the page, or use the button;
 - **set the canvas to the real size** — 214 × 719 pt, or millimetres, or inches;
 - **move, resize and rotate** — the aspect ratio stays locked until you say otherwise;
-- **read exact numbers** — X, Y, W and H in the canvas unit, live in the inspector;
+- **read exact numbers** — X, Y, W and H in the canvas unit *and* in board pixels, live in the inspector;
 - **add text** that belongs to the design;
 - **add notes** that explicitly do not;
 - **export four files**: the clean PNG, the annotated PNG, the exact geometry as JSON, and a written brief.
 
 The board is the point. The layout is a by-product: it is what you hand to a developer, or to an agent with eyes.
+
+The chrome is dark, quiet and glassy — translucent panels over a soft wallpaper, with the board as the only opaque thing on screen. Nothing in the interface competes with your artwork.
 
 ## Quick start
 

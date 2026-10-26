@@ -18,6 +18,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=ROOT, **kwargs)
 
+    def end_headers(self):
+        # Never let the browser serve a stale script or stylesheet while
+        # testing: a cached file makes a fix look like it did nothing.
+        self.send_header("Cache-Control", "no-store, must-revalidate")
+        super().end_headers()
+
     def do_GET(self):
         # Hold the page's load event open while the smoke test runs, so the
         # headless browser does not exit before the results are posted.
