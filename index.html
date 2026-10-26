@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Magnet Napkin</title>
+<meta name="description" content="Drop a folder of images onto a canvas of a known size, move them like magnets, leave notes that are clearly not part of the design, and export the layout plus a brief for a vision agent.">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="app">
+
+  <header id="toolbar">
+    <div class="brand">Magnet<em>Napkin</em></div>
+
+    <div class="sep" role="separator"></div>
+
+    <div class="toolgroup" role="group" aria-label="Canvas size">
+      <label class="tfield" for="c-width"><span>W</span><input id="c-width" type="number" min="0.01" step="1" inputmode="decimal"></label>
+      <label class="tfield" for="c-height"><span>H</span><input id="c-height" type="number" min="0.01" step="1" inputmode="decimal"></label>
+      <label class="tfield" for="c-unit"><span>Unit</span><select id="c-unit">
+        <option value="px">px</option>
+        <option value="pt">pt</option>
+        <option value="mm">mm</option>
+        <option value="in">in</option>
+      </select></label>
+      <label class="tfield" for="c-scale"><span>Scale</span><input id="c-scale" type="number" min="0.01" step="0.0001" inputmode="decimal"><span class="thint">px/unit</span></label>
+    </div>
+
+    <div class="sep" role="separator"></div>
+
+    <div class="toolgroup" role="group" aria-label="View">
+      <button type="button" data-act="zoomout" title="Zoom out" aria-label="Zoom out">−</button>
+      <span id="zoomlabel" class="zoomlabel" aria-live="off">100%</span>
+      <button type="button" data-act="zoomin" title="Zoom in" aria-label="Zoom in">+</button>
+      <button type="button" data-act="fit" title="Fit the whole canvas">Fit</button>
+      <label class="check"><input type="checkbox" id="gridToggle" checked> Grid</label>
+      <label class="check"><input type="checkbox" id="snapToggle" checked> Snap</label>
+      <label class="check"><input type="checkbox" id="aspectToggle" checked> Aspect</label>
+    </div>
+
+    <div class="sep" role="separator"></div>
+
+    <div class="toolgroup" role="group" aria-label="Create">
+      <button type="button" data-act="import" title="Import a folder of images">Import folder…</button>
+      <button type="button" data-act="addtext" title="Add a text box — design content, included in the clean PNG">+ Text</button>
+      <button type="button" data-act="addnote" title="Add a note — commentary, never part of the design">+ Note</button>
+    </div>
+
+    <div class="sep" role="separator"></div>
+
+    <div class="toolgroup" role="group" aria-label="History">
+      <button type="button" data-act="undo" title="Undo (Cmd/Ctrl+Z)">Undo</button>
+      <button type="button" data-act="redo" title="Redo (Shift+Cmd/Ctrl+Z)">Redo</button>
+    </div>
+
+    <div class="sep" role="separator"></div>
+
+    <div class="toolgroup" role="group" aria-label="Project">
+      <button type="button" data-act="new" title="Clear the board">New</button>
+      <button type="button" data-act="save" title="Download the project as .napkin.json">Save</button>
+      <button type="button" data-act="open" title="Open a .napkin.json project">Open</button>
+      <button type="button" data-act="exportpng" class="primary" title="Export the clean PNG — no notes, no UI">PNG</button>
+      <button type="button" data-act="handoff" title="Handoff: clean PNG, annotated PNG, layout.json and notes.md">Handoff</button>
+    </div>
+
+    <span id="status" role="status" aria-live="polite">Ready</span>
+  </header>
+
+  <aside id="tray" aria-label="Assets">
+    <div class="panelhead"><b>Assets</b><span id="tray-count" class="muted"></span></div>
+    <input id="search" type="search" placeholder="Filter assets…" aria-label="Filter assets" autocomplete="off">
+    <div id="tray-scroll"></div>
+    <p id="tray-empty" class="hint">Drop a folder of images anywhere on this page, or use <b>Import folder…</b>.<br>PNG, JPEG, WebP, SVG and GIF.</p>
+  </aside>
+
+  <main id="main">
+    <div id="viewport">
+      <div id="stage">
+        <div id="ruler-corner" aria-hidden="true"></div>
+        <div id="ruler-top" class="ruler" aria-hidden="true"></div>
+        <div id="ruler-left" class="ruler" aria-hidden="true"></div>
+        <div id="board-wrap">
+          <div id="board" tabindex="0" aria-label="Canvas">
+            <div id="bg"></div>
+            <div id="grid" aria-hidden="true"></div>
+            <div id="items"></div>
+            <div id="notes"></div>
+            <div id="guides" aria-hidden="true"></div>
+            <div id="empty-state">
+              <h1>Magnet Napkin</h1>
+              <ol>
+                <li><b>Import</b> a folder of images — drop it anywhere on this page.</li>
+                <li><b>Set the canvas</b> to the real size: width, height, unit and scale, top left.</li>
+                <li><b>Drag</b> an asset from the tray onto the canvas.</li>
+              </ol>
+              <p class="muted"><b>+ Text</b> is design content and reaches the clean PNG.
+                <b>+ Note</b> is commentary: it is never part of the design.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <aside id="inspector" aria-label="Inspector">
+    <div id="inspector-body"></div>
+  </aside>
+
+</div>
+
+<dialog id="handoff-dialog" aria-labelledby="handoff-title">
+  <h2 id="handoff-title">Handoff</h2>
+  <p class="muted">Four files, one click each. Browsers block multiple automatic downloads.</p>
+  <div class="handoff-grid">
+    <button type="button" data-export="clean">layout.png<small>the clean design — no notes</small></button>
+    <button type="button" data-export="annotated">layout-annotated.png<small>the same board with the notes visible</small></button>
+    <button type="button" data-export="json">layout.json<small>the machine contract</small></button>
+    <button type="button" data-export="notes">notes.md<small>the brief for a human or an agent</small></button>
+  </div>
+  <div class="handoff-actions">
+    <button type="button" id="copy-handoff">Copy handoff brief</button>
+    <button type="button" id="close-handoff" class="quiet">Close</button>
+  </div>
+</dialog>
+
+<input id="file-input" type="file" webkitdirectory directory multiple hidden>
+<input id="json-input" type="file" accept=".json,application/json" hidden>
+
+<script src="js/core.js"></script>
+<script src="js/units.js"></script>
+<script src="js/state.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
