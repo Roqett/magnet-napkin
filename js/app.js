@@ -13,7 +13,7 @@
   const CAPS = {
     zoom: true,
     zoomfit: true,
-    import: false,
+    import: true,
     text: false,
     note: false,
     newProject: false,
@@ -121,6 +121,9 @@
   }
 
   function wireViewControls() {
+    core.$('[data-act="import"]').addEventListener("click", function () {
+      MN.assets.openFolderPicker();
+    });
     core.$('[data-act="zoomin"]').addEventListener("click", function () {
       MN.stage.zoomIn(viewCentre());
     });
