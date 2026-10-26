@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Magnet Napkin — smoke test</title>
+<style>
+  body { font: 13px/1.5 ui-monospace, Menlo, monospace; margin: 0; padding: 12px; background: #fff; color: #111; }
+  h1 { font-size: 14px; margin: 0 0 8px; }
+  #out { white-space: pre-wrap; }
+  .pass { color: #0a6b28; }
+  .fail { color: #b00020; font-weight: 700; }
+  #frame { position: absolute; left: -9999px; width: 1200px; height: 800px; border: 0; }
+</style>
+</head>
+<body>
+<h1>Magnet Napkin — smoke test</h1>
+<div id="out">running…</div>
+<img id="hold" src="/__hold?seconds=12" alt="" style="position:absolute;left:-9999px">
+<iframe id="frame" src="/index.html"></iframe>
+<script>
+const lines = [];
+let failures = 0;
+
+function log(name, ok, detail) {
+  if (!ok) failures++;
+  lines.push((ok ? "PASS " : "FAIL ") + name + (detail ? "  [" + detail + "]" : ""));
+}
+
+const frame = document.getElementById("frame");
+
+function finish() {
+  const report = lines.join("\n") + "\n\n" + (failures === 0 ? "ALL PASS" : failures + " FAILURE(S)") +
+    "\nUA: " + navigator.userAgent;
+  document.getElementById("out").innerHTML =
+    lines.map(function (l) {
+      const cls = l.startsWith("FAIL") ? "fail" : "pass";
+      return '<span class="' + cls + '">' + l.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</span>";
+    }).join("\n") +
+    "\n\n" + (failures === 0 ? "ALL PASS" : failures + " FAILURE(S)") +
+    "\nUA: " + navigator.userAgent;
+  document.title = failures === 0 ? "TEST PASS" : "TEST FAIL " + failures;
+  try {
+    fetch("/__result", { method: "POST", body: report });
+  } catch (err) { /* the report is in the page as well */ }
+}
+
+let loadCount = 0;
+
+frame.addEventListener("load", async function () {
+  loadCount += 1;
+  const w = frame.contentWindow;
+
+  const errors = [];
+  w.addEventListener("error", function (e) { errors.push(String(e.message)); });
+  w.addEventListener("unhandledrejection", function (e) { errors.push("rejection: " + String(e.reason)); });
+  const originalError = w.console.error;
+  w.console.error = function () { errors.push(Array.prototype.join.call(arguments, " ")); originalError.apply(w.console, arguments); };
+
+  /* Let the app settle: the autosave restore reads the stored project, and
+     it has to finish before the test starts or it lands in the middle. */
+  await new Promise(function (r) { setTimeout(r, 900); });
+
+  /* Keep the page's load event open, so a headless browser does not exit
+     before the results are posted. The image is in the markup; this is just
+     a reminder that it is what holds the page open. */
+  if (!document.getElementById("hold")) {
+    const hold = new Image();
+    hold.src = "/__hold?seconds=12";
+    document.body.appendChild(hold);
+  }
+
+  try {
+    const MN = w.MN;
+    log("namespace present", !!MN);
+    log("modules loaded", !!(MN.core && MN.units && MN.state && MN.stage && MN.items && MN.interact &&
+      MN.inspector && MN.textlayout && MN.snap && MN.assets && MN.project && MN.exporter && MN.handoff));
+
+    const S = MN.state;
+    const state = S.state;
+    state.items.length = 0; state.notes.length = 0; state.assets.length = 0;
+    state.canvas.width = 400; state.canvas.height = 300; state.canvas.unit = "px"; state.canvas.scale = 1;
+    state.canvas.background = { type: "color", value: "#ffffff" };
+
+    /* text layout: the measured lines and the drawn lines must agree */
+    const text = MN.interact.placeText("HELLO WRAPPED WORLD OF TEXT");
+    const layout = MN.items.layoutOf(text);
+    const domLines = Array.prototype.map.call(
+      MN.items.elementFor(text.id).querySelectorAll(".tl"), function (n) { return n.textContent; });
+    log("text layout matches the DOM",
+      JSON.stringify(layout.lines.map(function (l) { return l.text; })) === JSON.stringify(domLines),
+      domLines.join("|"));
+    log("diag after placeText",
+      state.items.length === 1 && w.document.querySelectorAll("#items .magnet").length === 1 &&
+      S.history.past.length >= 2,
+      "items=" + state.items.length + " dom=" + w.document.querySelectorAll("#items .magnet").length +
+      " history=" + S.history.past.length);
+
+    /* an image item */
+    const asset = { id: "a1", name: "t.png", path: "t.png", mime: "image/png", width: 100, height: 50,
+      blob: null, url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==" };
+    state.assets.push(asset);
+    const item = S.newImageItem(asset, 0, 0);
+    item.x = 10; item.y = 10; item.w = 100; item.h = 50;
+    state.items.push(item);
+    S.commit("test");
+    log("item rendered", w.document.querySelectorAll("#items .magnet").length === 2,
+      String(w.document.querySelectorAll("#items .magnet").length));
+    log("diag after the image",
+      state.items.length === 2 && S.history.past.length >= 3,
+      "items=" + state.items.length + " dom=" + w.document.querySelectorAll("#items .magnet").length +
+      " history=" + S.history.past.length + " layerChildren=" +
+      w.document.querySelector("#items").children.length);
+
+    /* a note stays out of items */
+    const note = MN.interact.placeNote("a note");
+    log("note is not an item", state.items.indexOf(note) < 0 && state.notes.length === 1);
+
+    /* undo and redo */
+    const before = state.items.length;
+    const historyBefore = S.history.past.length;
+    const undoResult = S.undo();
+    const afterUndo = state.items.length;
+    const historyAfter = S.history.past.length;
+    /* Three commits so far: the text, the image and the note. One undo takes
+       the note away again. */
+    log("diag undo", undoResult === true && afterUndo === 2 && historyBefore === 4,
+      "returned=" + undoResult + " items=" + afterUndo + " historyBefore=" + historyBefore + " historyAfter=" + historyAfter);
+    S.redo();
+    /* The undo took the note away, the redo put it back. */
+    log("undo and redo", afterUndo === 2 && state.notes.length === 1 && state.items.length === 2,
+      before + " -> " + afterUndo + " -> " + state.items.length + ", notes=" + state.notes.length);
+
+    /* snapping */
+    state.view.snap = true;
+    const snapped = MN.snap.snapMove({ id: "p", w: 50, h: 50 }, 598, 0);
+    log("snap to the canvas centre", Math.abs(snapped.x - 600) < 0.001 || Math.abs(snapped.x - 550) < 0.001,
+      String(snapped.x));
+
+    /* the export: no notes in the clean PNG, notes in the annotated one */
+    const countYellow = function (ctx, width, height) {
+      const data = ctx.getImageData(0, 0, width, height).data;
+      let n = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (Math.abs(data[i] - 255) < 8 && Math.abs(data[i + 1] - 243) < 8 && Math.abs(data[i + 2] - 176) < 8) n++;
+      }
+      return n;
+    };
+    const clean = await MN.exporter.renderCanvas({ tier: 1, annotated: false });
+    const annotated = await MN.exporter.renderCanvas({ tier: 1, annotated: true });
+    const cleanYellow = countYellow(clean.getContext("2d"), clean.width, clean.height);
+    const annYellow = countYellow(annotated.getContext("2d"), annotated.width, annotated.height);
+    log("clean PNG has no notes", cleanYellow === 0, String(cleanYellow));
+    log("annotated PNG has the notes", annYellow > 0, String(annYellow));
+    log("PNG size follows the scale", clean.width === 400 && clean.height === 300, clean.width + "x" + clean.height);
+
+    /* the notes brief */
+    const md = MN.handoff.notesMarkdown();
+    log("notes.md names the clean PNG as the design", md.indexOf("is the design") >= 0);
+    log("notes.md lists the note with its position", md.indexOf("(x ") >= 0 && md.indexOf("a note") >= 0);
+
+    /* the document format */
+    const doc = MN.project.documentOf();
+    log("document format", doc.format === "magnet-napkin/v1" && doc.items.length === state.items.length);
+    log("notes are a separate array", Array.isArray(doc.notes) && doc.notes.length === 1 &&
+      doc.items.every(function (i) { return i.kind !== "note"; }));
+
+    /* IndexedDB */
+    let idb = false;
+    try {
+      await new Promise(function (resolve, reject) {
+        const request = w.indexedDB.open("magnet-napkin-test", 1);
+        request.onsuccess = function () { resolve(); };
+        request.onerror = function () { reject(request.error); };
+      });
+      idb = true;
+    } catch (err) { idb = false; }
+    log("IndexedDB available", idb);
+  } catch (err) {
+    log("unexpected error", false, err && err.message ? err.message : String(err));
+  }
+
+  log("no console errors", errors.length === 0, errors.join(" / "));
+  finish();
+});
+</script>
+</body>
+</html>

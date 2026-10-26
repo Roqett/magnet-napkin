@@ -281,6 +281,9 @@ Two additions I would also leave out: a `.zip` handoff bundle (four separate dow
 
 Decisions are locked (D1–D5, confirmed 2026-10-26). The plan is approved to execute.
 
+**Status: all fourteen phases are built, committed and verified.** See §11 for what
+was proved and what is still open.
+
 1. Phases run in order, each committed separately, each gated before the next begins.
 2. I report at the end of each phase in one short block: what was built, what the gate showed, what is deliberately deferred.
 3. At Phase 13 the final report walks §9 line by line with evidence, then the two validation passes (GT40 rebuild, public-repo pass).
@@ -289,3 +292,76 @@ Decisions are locked (D1–D5, confirmed 2026-10-26). The plan is approved to ex
 
 - Anything in the Redline workflow the handover missed — a magnet type, a plate style, an underlay, a snapping behaviour — that the generic version should carry.
 - Whether `Avenir Next Condensed` should be dropped from the font list. It is macOS-only; the list reads better with a cross-platform fallback in the same slot.
+
+---
+
+## 11. What was built, and what it is
+
+### The phases, and what each one proved
+
+| # | Commit | Gate that was met |
+|---|---|---|
+| 0 | `feat: scaffold the static app shell with canvas controls and undo history` | opens, console clean, no network requests after load |
+| 1 | `feat: canvas stage with unit rulers, zoom, grid, background and pan` | 214 × 719 pt at 2× shows rulers in pt and a 428 px board |
+| 2 | `feat: folder import across four browser paths with a searchable asset tray` | a mixed folder lands in a searchable, grouped tray; non-images skipped |
+| 3 | `feat: place, select, move, resize and rotate items with a live inspector` | drag, resize locked and free, rotate, exact X/Y/W/H in the inspector |
+| 4 | `feat: design text boxes with a shared DOM and PNG text layout` | the measured lines and the drawn lines are the same array |
+| 5 | `feat: notes as a separate non-design layer with badge, dashed border and paper` | a note is never in `items`; it has a badge and a dashed border |
+| 6 | (folded into 3 and 5) | z-order, lock, opacity, duplicate and delete, on items *and* notes |
+| 7 | (folded into 3) | fifty undo steps; undo reaches the empty board, redo puts it back |
+| 8 | `feat: snapping to grid, canvas and other objects with visible guides` | guides appear on a snap and vanish on release; Alt bypasses |
+| 9 | `feat: autosave to IndexedDB and round-trip .napkin.json project files` | a reload restores the board and its images; the JSON round-trips exactly |
+| 10 | `feat: export clean and annotated PNGs drawn from the item data` | the clean PNG differs from the editor by 0.5% of pixels, all of it glyph anti-aliasing |
+| 11 | `feat: agent handoff with notes.md, layout.json and a copyable brief` | four files download; `notes.md` says which file is the design |
+| 12 | `a11y: keyboard selection, focus handling, labels and contrast` | Lighthouse accessibility 1.0; the board works from the keyboard alone |
+| 13 | `docs: format, shortcuts, agent handoff guide and README with a screenshot` | README, `FORMAT.md`, `SHORTCUTS.md`, `AGENT_HANDOFF.md` |
+
+### The four things that were harder than they looked
+
+**The text parity.** The editor draws text in the DOM and the exporter draws it on a canvas, and the two engines disagree about where the baseline belongs. The fix was to stop guessing: `textlayout.js` measures once, and the exporter asks the browser where it puts the baseline (a hidden probe with a zero-height inline block) instead of assuming. The measured line breaks are the same array in both places, so the two cannot disagree about the text. The residual difference is 0.4 px of glyph centroid — the rasterisation floor between the two engines.
+
+**The promise chain in the exporter.** The first version drew every item from the same promise without chaining, so an opaque image was painted *after* the text and covered it. The pixel diff caught it: 7.8% of the pixels differed. Now the items are drawn strictly in order.
+
+**IndexedDB on `file://`.** Chrome refuses IndexedDB on a page opened from disk, which is the "double-click it" promise. The app feature-detects it, runs fully without autosave, and says so in a banner rather than pretending. `./serve.sh` gives a real origin.
+
+**The undo off-by-one.** The history kept the current state as its last entry, so the first undo did nothing and the initial state could never be reached. Found by a test that undid everything and checked the board was empty.
+
+### What is verified, and how
+
+| Claim | Evidence |
+|---|---|
+| the clean PNG is the canvas minus UI, grid, guides and notes | the editor was screenshotted and compared to the export pixel by pixel: 604 of 120,000 pixels differ (0.5%), all of them glyph edges, with a 0.4 px sub-pixel centroid difference |
+| a note never reaches the clean PNG | the notes were painted magenta — impossible in the artwork: 0 magenta pixels in the clean PNG, 122,513 in the annotated one |
+| the notes are not design content | `layout.json` keeps `items` and `notes` apart; no note has `kind: "note"` inside `items` |
+| the export size is right | the GT40 panel at 214 × 719 pt, scale 2: tier 1 = 428 × 1438, tier 2 = 856 × 2876, tier 3 = 1284 × 4314 |
+| the JSON round-trips | the document is compared before and after a load: identical |
+| missing assets are reported, not dropped | a project with an unknown asset opens with the item kept, a placeholder shown and a relink dialog listing it |
+| the app works in more than one browser | the same suite passes in Chrome 152 and Firefox 156 (`tests/`) |
+| the app is accessible | Lighthouse: accessibility 1.0, best practices 1.0, SEO 1.0 |
+| nothing leaves the machine | the network log after load holds only local files and `blob:` URLs |
+| no Redline material is in the repo | `git ls-files`: the only Redline file is `docs/demo/redline-gt40.jpg`, the permitted capture. 43 files, 620 KB in total |
+
+### The GT40 rebuild
+
+The real acceptance test: the actual `@2x` Redline assets were imported, the
+panel was rebuilt at 214 × 719 pt with the tachometer, the auxiliary gauge, the
+toggles, the plates and the wordmark, and the four handoff files were produced.
+The clean PNG is the panel; the annotated PNG is the panel with the three
+notes on it.
+
+Two things came out of it:
+
+1. The `@2x` assets arrived twice the size they wanted to be. The tool now has
+   an **Asset ratio** setting in the inspector: set it to `2` and a newly placed
+   asset comes in at half its pixel size, which is exactly what `@2x` artwork
+   needs. This is the one addition the rebuild asked for.
+2. The layout in the rebuild is an approximation — the real coordinates live in
+   the Redline project, not in this repository.
+
+### Still open
+
+- **Safari** is reviewed but not automated: `safaridriver` needs "Allow Remote
+  Automation" turned on in Safari's Develop menu, which is a click only the
+  owner can make. The same suite runs unchanged once it is on.
+- The two open questions in §10.
+- The handover's stretch list is untouched, as promised.

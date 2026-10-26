@@ -5,6 +5,10 @@
 *.local
 scratch/
 
+# Smoke test output
+tests/result.txt
+tests/result.png
+
 # If a dev server or bundler ever appears
 node_modules/
 dist/

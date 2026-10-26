@@ -89,6 +89,17 @@
     });
     frag.appendChild(row("Grid", gridInput, unitLabel()));
 
+    const ratioInput = numberField("i-asset-scale", state.view.assetScale, {
+      min: 0.25, step: "any", label: "Ratio of the imported image files",
+    });
+    ratioInput.addEventListener("change", function () {
+      const v = Math.max(0.25, core.num(ratioInput.value));
+      state.view.assetScale = v;
+      MN.app.setStatus("Newly placed assets will come in at " +
+        core.fmtNum(v, 2) + "× their pixel size.");
+    });
+    frag.appendChild(row("Asset ratio", ratioInput, "×"));
+
     const bg = c.background || { type: "checker", value: "#eef0f3" };
     const bgSelect = core.el("select", { id: "i-bg", "aria-label": "Canvas background" }, [
       core.el("option", { value: "checker", text: "Checker" }),

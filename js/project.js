@@ -241,6 +241,12 @@
       throw new Error("Unknown format: " + (doc.format || "none") + ". Expected " + FORMAT + ".");
     }
 
+    /* A restore must never land on top of work the user has already done
+       while the stored project was being read. */
+    if (opts.restore && (state.items.length || state.notes.length || state.assets.length)) {
+      return { missing: [], skipped: true };
+    }
+
     /* Assets already in the tray keep their blobs; assets in the file that
        are embedded are decoded; the rest are reported as missing. */
     const existing = new Map();
@@ -352,6 +358,12 @@
   async function restoreProject() {
     const doc = await idbGet(STORE_PROJECT, CURRENT);
     if (!doc) return false;
+
+    /* If the board was touched while the stored project was being read —
+       a big folder of images takes a moment — the restore is dropped rather
+       than allowed to wipe what the user just did. */
+    if (state.items.length || state.notes.length || state.assets.length) return false;
+
     const assets = [];
     for (const raw of doc.assets || []) {
       const id = typeof raw.id === "string" ? raw.id : core.uid("a");
@@ -374,7 +386,7 @@
       });
     }
     const restored = Object.assign({}, doc, { assets: assets });
-    await loadDocument(restored, { silent: true, assets: assets });
+    await loadDocument(restored, { silent: true, assets: assets, restore: true });
     return true;
   }
 
@@ -453,7 +465,6 @@
       MN.stage.applyView();
       MN.app.setStatus("Restored your last board from this browser.");
     }
-
     S.on("change", function () {
       scheduleAutosave();
     });

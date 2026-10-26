@@ -27,9 +27,10 @@
   /* ---------- placement ---------- */
 
   /* The intrinsic size of an asset expressed in canvas units: its pixels
-     divided by the canvas scale (how many pixels one unit is worth). */
+     divided by the canvas scale (how many pixels one unit is worth) and by
+     the asset ratio, for artwork that is exported at twice the size. */
   function naturalSize(asset) {
-    const s = state.canvas.scale || 1;
+    const s = (state.canvas.scale || 1) * (state.view.assetScale || 1);
     return { w: asset.width / s, h: asset.height / s };
   }
 

@@ -25,7 +25,12 @@
     notes: [],       // commentary. Never merged into items.
     selection: null, // { type: "item" | "note", id }
     projectName: "Magnet Napkin board",
-    view: { zoom: 1, grid: true, snap: true, aspect: true, gridSize: 10 },
+    view: {
+      zoom: 1, grid: true, snap: true, aspect: true, gridSize: 10,
+      /* When the imported files are @2x artwork, a newly placed asset should
+         come in at half its pixel size. 1 means the files are @1x. */
+      assetScale: 1,
+    },
   };
 
   /* ---------- events ---------- */
