@@ -259,6 +259,7 @@ Store geometry in **canvas units**, not screen pixels. Render at `scale` (e.g. 2
 - `.napkin.json` is a normal JSON file. Validate `format`, clamp numbers, ignore unknown fields.
 - If assets are not embedded, show “missing assets” and offer relink by filename; do not silently drop items.
 - Autosave the whole project to IndexedDB under one key; debounce ~500 ms; never save during a drag.
+- **Persistence safety is a requirement, not a nicety.** The single `CURRENT` key is not enough. Keep versioned snapshots, guard against a second tab, and never let an empty board overwrite a populated one. The Redline canvas lost a 34-magnet layout to exactly that failure on 26 October 2026. See `docs/AUTOSAVE_AND_RECOVERY.md`.
 - `notes` never becomes `items`. Even if a note is positioned over the artwork, it is still commentary and must be exported as such.
 - `notes.md` is **derived** from `notes`; it is for humans and vision agents, not a source of truth. The JSON wins.
 - The clean PNG defaults to `includeInCleanPNG: false` for every note. The annotated PNG always includes notes. Never make the annotated PNG the default download.
