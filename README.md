@@ -20,7 +20,11 @@ No accounts. No cloud. No install. No build step.
 
 ## The first board
 
-The first project is the **RED-LINE GT40 cockpit** at 214 × 719 pt — a real panel with real dial, toggle and label assets. Screenshots of the board and the exported handoff will land here once the first layout is settled. RED-LINE itself is a separate private project; this public repo contains none of its artwork.
+The first project is the **RED-LINE GT40 cockpit** at 214 × 719 pt — a real panel with real dial, toggle and label assets.
+
+![The RED-LINE GT40 cockpit at 214 × 719 pt](docs/demo/redline-gt40.jpg)
+
+*The first board: the RED-LINE GT40 cockpit at 214 × 719 pt. RED-LINE is a separate private project; this is a promotional capture, used with permission. The layout board and its notes will follow once the first build is in.*
 
 ## Planned shape
 

@@ -59,7 +59,7 @@ The generic **text box** and **note** tools are new, but the inspector-editing p
 
 **Read the prototype for the feel. Do not fork its embedded-asset approach.** The generic app must load the user's folder, not carry someone else's art. The prototype is deliberately 4.1 MB because the Redline assets are baked in; the generic app should be a tiny static page.
 
-The Redline art is private/client work. **Do not copy any Redline image, font, or brand asset into the new repo.**
+The Redline art is private/client work. **Do not copy any Redline source asset, font, or brand asset into the new repo.** A single promotional screenshot of the finished RED-LINE panel may be included in the README with the owner's permission; that is a capture, not a source asset. The screenshot currently lives at `docs/demo/redline-gt40.jpg`.
 
 ---
 
