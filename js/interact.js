@@ -268,12 +268,26 @@
     const tray = core.$("#tray-scroll");
     if (!tray) return;
 
+    /* A double click should place one asset, not two. */
+    let lastPlacement = null;
+
+    function placeFromTray(asset) {
+      const now = Date.now();
+      if (lastPlacement && lastPlacement.assetId === asset.id && now - lastPlacement.at < 400) {
+        lastPlacement.at = now;
+        return null;
+      }
+      const item = placeAsset(asset, canvasCentre().x, canvasCentre().y);
+      lastPlacement = { assetId: asset.id, itemId: item.id, at: now };
+      return item;
+    }
+
     tray.addEventListener("click", function (e) {
       const row = e.target.closest ? e.target.closest(".tray-item") : null;
       if (!row) return;
       const asset = S.findAsset(row.dataset.id);
       if (!asset) return;
-      placeAsset(asset, canvasCentre().x, canvasCentre().y);
+      placeFromTray(asset);
     });
 
     /* The tray works from the keyboard too. */
@@ -284,7 +298,7 @@
       e.preventDefault();
       const asset = S.findAsset(row.dataset.id);
       if (!asset) return;
-      placeAsset(asset, canvasCentre().x, canvasCentre().y);
+      placeFromTray(asset);
     });
 
     tray.addEventListener("dragstart", function (e) {

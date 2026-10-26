@@ -377,7 +377,11 @@ body.dropping::after {
 }
 
 #bg, #grid, #items, #notes, #guides { position: absolute; inset: 0; }
-#bg, #grid, #guides { pointer-events: none; }
+
+/* The layers are containers, not surfaces. If they caught the pointer, the
+   empty notes layer would sit over the items and swallow every click. */
+#bg, #grid, #guides, #items, #notes { pointer-events: none; }
+.magnet { pointer-events: auto; }
 
 #bg.checker {
   background-color: #f6f7f9;

@@ -104,16 +104,39 @@
     const bgSelect = core.el("select", { id: "i-bg", "aria-label": "Canvas background" }, [
       core.el("option", { value: "checker", text: "Checker" }),
       core.el("option", { value: "color", text: "Solid colour" }),
+      core.el("option", { value: "image", text: "Image" }),
     ]);
-    bgSelect.value = bg.type === "color" ? "color" : "checker";
+    bgSelect.value = ["color", "image"].indexOf(bg.type) >= 0 ? bg.type : "checker";
     bgSelect.addEventListener("change", function () {
-      state.canvas.background = bgSelect.value === "color"
-        ? { type: "color", value: (state.canvas.background && state.canvas.background.value) || "#eef0f3" }
-        : { type: "checker", value: "#eef0f3" };
+      const value = state.canvas.background && state.canvas.background.value;
+      if (bgSelect.value === "color") {
+        state.canvas.background = { type: "color", value: value && value.charAt(0) === "#" ? value : "#eef0f3" };
+      } else if (bgSelect.value === "image") {
+        state.canvas.background = { type: "image", value: value || (state.assets[0] ? state.assets[0].id : "") };
+      } else {
+        state.canvas.background = { type: "checker", value: "#eef0f3" };
+      }
       S.commit("background");
       render();
     });
     frag.appendChild(row("Background", bgSelect));
+
+    if (bgSelect.value === "image") {
+      const assetSelect = core.el("select", { id: "i-bg-image", "aria-label": "Background image" },
+        state.assets.map(function (asset) {
+          return core.el("option", { value: asset.id, text: asset.name });
+        }));
+      if (!state.assets.length) {
+        assetSelect.appendChild(core.el("option", { value: "", text: "No images imported yet" }));
+      }
+      assetSelect.value = bg.value || "";
+      assetSelect.addEventListener("change", function () {
+        state.canvas.background = { type: "image", value: assetSelect.value };
+        MN.stage.applyBackground();
+        S.commit("background image");
+      });
+      frag.appendChild(row("Image", assetSelect));
+    }
 
     if (bgSelect.value === "color") {
       const colour = core.el("input", {

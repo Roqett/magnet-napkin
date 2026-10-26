@@ -115,15 +115,45 @@ frame.addEventListener("load", async function () {
     const note = MN.interact.placeNote("a note");
     log("note is not an item", state.items.indexOf(note) < 0 && state.notes.length === 1);
 
+    /* The mouse must be able to reach an item. The layers are containers, not
+       surfaces: an empty notes layer that catches the pointer swallows every
+       click on the artwork. */
+    const imageEl = MN.items.elementFor(item.id);
+    const imageRect = imageEl.getBoundingClientRect();
+    const hit = w.document.elementFromPoint(
+      Math.round(imageRect.left + imageRect.width / 2),
+      Math.round(imageRect.top + imageRect.height / 2));
+    log("the item is under the pointer", !!hit && imageEl.contains(hit),
+      hit ? (hit.id || hit.className) : "nothing there");
+
+    /* And a press on that spot must select it. */
+    const pressed = { x: 0, y: 0 };
+    if (hit) {
+      const fire = function (type, dx, dy) {
+        hit.dispatchEvent(new w.PointerEvent(type, {
+          clientX: imageRect.left + imageRect.width / 2 + dx,
+          clientY: imageRect.top + imageRect.height / 2 + dy,
+          bubbles: true, cancelable: true, pointerId: 3, button: 0, buttons: 1,
+        }));
+      };
+      fire("pointerdown", 0, 0);
+      pressed.selected = state.selection ? state.selection.id : null;
+      fire("pointermove", 30, 20);
+      fire("pointerup", 30, 20);
+      pressed.moved = Math.abs(item.x - 10) > 1 || Math.abs(item.y - 10) > 1;
+    }
+    log("a press selects the item", pressed.selected === item.id, String(pressed.selected));
+    log("a press moves the item", pressed.moved === true);
+
     /* undo and redo */
     const before = state.items.length;
     const historyBefore = S.history.past.length;
     const undoResult = S.undo();
     const afterUndo = state.items.length;
     const historyAfter = S.history.past.length;
-    /* Three commits so far: the text, the image and the note. One undo takes
-       the note away again. */
-    log("diag undo", undoResult === true && afterUndo === 2 && historyBefore === 4,
+    /* Four or more commits so far: the text, the image, the note and the
+       press. One undo takes the note away again. */
+    log("diag undo", undoResult === true && afterUndo === 2 && historyBefore >= 4,
       "returned=" + undoResult + " items=" + afterUndo + " historyBefore=" + historyBefore + " historyAfter=" + historyAfter);
     S.redo();
     /* The undo took the note away, the redo put it back. */
