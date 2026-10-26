@@ -1,8 +1,14 @@
-# Magnet Napkin — handover
+# 01 — Magnet Napkin — handover
 
+**Handover:** 01 · 2026-10-26  
 **Working title:** Magnet Napkin  
 **Repo:** `magnet-napkin`  
 **One line:** Drop a folder of images onto a canvas of a known size, move them around like magnets, leave notes that are clearly notes, and export the layout plus a brief for a vision agent.
+
+> **Naming convention.** Project handovers are numbered and named  
+> `NN-PROJECT-HANDOVER.md` — e.g. `01-MAGNET-NAPKIN-HANDOVER.md`,  
+> `02-SOMETHING-HANDOVER.md`. The number goes first so the files sort and  
+> the console tab says which handover it is.
 
 This is a napkin sketch that knows its pixels: loose enough to rearrange, exact enough to hand a layout back to a developer — or to an agent with eyes.
 
@@ -381,7 +387,7 @@ magnet-napkin/
   app.js                 # classic script; no modules required
   README.md
   LICENSE                # MIT
-  HANDOVER.md            # this file
+  01-MAGNET-NAPKIN-HANDOVER.md   # this file
   docs/
     FORMAT.md            # .napkin.json
     SHORTCUTS.md
@@ -423,7 +429,7 @@ The MVP is done when all of these are true:
 
 Use this as the kickoff, and keep the scope narrow:
 
-> Build **Magnet Napkin** from `HANDOVER.md`. Read the whole handover first. Build the MVP only: folder import, canvas size/units, drag/resize/rotate, inspector, z-order/lock/opacity, keyboard nudge, undo/redo, snapping/guides, **basic text boxes**, **notes that are separate from the design**, IndexedDB autosave, clean and annotated PNG export, JSON project import/export, and the **notes.md handoff**. Vanilla HTML/CSS/JS, no framework, no build step, no backend, no accounts, no cloud. One static page that opens from disk and on GitHub Pages. Stop at the Definition of Done and report what is done and what is deliberately deferred. Do not build an MCP in this session. Do not add stretch features.
+> Build **Magnet Napkin** from `01-MAGNET-NAPKIN-HANDOVER.md`. Read the whole handover first. Build the MVP only: folder import, canvas size/units, drag/resize/rotate, inspector, z-order/lock/opacity, keyboard nudge, undo/redo, snapping/guides, **basic text boxes**, **notes that are separate from the design**, IndexedDB autosave, clean and annotated PNG export, JSON project import/export, and the **notes.md handoff**. Vanilla HTML/CSS/JS, no framework, no build step, no backend, no accounts, no cloud. One static page that opens from disk and on GitHub Pages. Stop at the Definition of Done and report what is done and what is deliberately deferred. Do not build an MCP in this session. Do not add stretch features.
 
 A useful first response from the new session: restate the MVP and the Definition of Done in its own words, list the files it will create, then build in that order.
 
