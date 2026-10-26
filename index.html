@@ -63,6 +63,11 @@
       <button type="button" data-act="save" title="Download the project as .napkin.json">Save</button>
       <button type="button" data-act="open" title="Open a .napkin.json project">Open</button>
       <button type="button" data-act="exportpng" class="primary" title="Export the clean PNG — no notes, no UI">PNG</button>
+      <select id="export-tier" aria-label="Export size">
+        <option value="1">1×</option>
+        <option value="2" selected>2×</option>
+        <option value="3">3×</option>
+      </select>
       <button type="button" data-act="handoff" title="Handoff: clean PNG, annotated PNG, layout.json and notes.md">Handoff</button>
     </div>
 
@@ -164,6 +169,7 @@
 <script src="js/snap.js"></script>
 <script src="js/interact.js"></script>
 <script src="js/inspector.js"></script>
+<script src="js/exporter.js"></script>
 <script src="js/project.js"></script>
 <script src="js/app.js"></script>
 </body>

@@ -13,7 +13,9 @@
     height: 800,
     unit: "px",
     scale: 1,
-    background: { type: "checker", value: "#eef0f3" },
+    /* A flat light grey, so the editor and the exported PNG agree. The
+       checker is an editor aid for an empty board and is available here. */
+    background: { type: "color", value: "#eef0f3" },
   };
 
   const state = {

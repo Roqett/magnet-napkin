@@ -21,7 +21,7 @@
     newProject: true,
     save: true,
     open: true,
-    exportPng: false,
+    exportPng: true,
     handoff: false,
   };
 
@@ -135,6 +135,14 @@
     });
     core.$('[data-act="addnote"]').addEventListener("click", function () {
       MN.interact.placeNote();
+    });
+    core.$('[data-act="exportpng"]').addEventListener("click", function () {
+      const tier = core.num(core.$("#export-tier").value) || 1;
+      MN.exporter.exportPng({ tier: tier, annotated: false }).then(function (result) {
+        setStatus("Exported " + result.name + " · " + result.width + " × " + result.height + " px");
+      }).catch(function (err) {
+        window.alert("The PNG could not be exported: " + (err && err.message ? err.message : "unknown error"));
+      });
     });
     core.$('[data-act="zoomin"]').addEventListener("click", function () {
       MN.stage.zoomIn(viewCentre());

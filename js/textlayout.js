@@ -108,11 +108,57 @@
     return (layout.lineHeight - layout.fontSize) / 2;
   }
 
+  /* Where the browser puts the baseline inside a line box.
+     The editor draws text in the DOM and the exporter draws it on a canvas,
+     and the two engines disagree about where the baseline belongs. Rather
+     than guess, measure the browser once and use the same number for both.
+
+     Measured at a large font size so the pixel rounding does not matter:
+     the offset is a fixed ratio of the font size. */
+  const baselineCache = new Map();
+
+  function baselineRatio(spec) {
+    const family = stackFor(spec.fontFamily);
+    const weight = spec.fontWeight || 400;
+    const key = family + "|" + weight;
+    if (baselineCache.has(key)) return baselineCache.get(key);
+
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:absolute;left:-99999px;top:0;visibility:hidden;white-space:nowrap;";
+    probe.style.fontFamily = family;
+    probe.style.fontWeight = String(weight);
+    probe.style.fontSize = "100px";
+    probe.style.lineHeight = 100 * LINE_HEIGHT + "px";
+
+    const text = document.createElement("span");
+    text.textContent = "Hxy";
+    /* A zero height inline block sits on the baseline. */
+    const marker = document.createElement("span");
+    marker.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline;";
+    probe.appendChild(text);
+    probe.appendChild(marker);
+    document.body.appendChild(probe);
+
+    const offset = marker.getBoundingClientRect().bottom - probe.getBoundingClientRect().top;
+    probe.remove();
+
+    const ratio = offset / 100;
+    baselineCache.set(key, ratio);
+    return ratio;
+  }
+
+  /* The baseline offset for a given font size, in canvas units. */
+  function baselineOffset(spec) {
+    const fontSize = spec.fontSize > 0 ? spec.fontSize : 12;
+    return baselineRatio(spec) * fontSize;
+  }
+
   MN.textlayout = {
     layoutText: layoutText,
     fontString: fontString,
     stackFor: stackFor,
     halfLeading: halfLeading,
+    baselineOffset: baselineOffset,
     FONT_NAMES: FONT_NAMES,
     LINE_HEIGHT: LINE_HEIGHT,
   };
