@@ -17,6 +17,7 @@
     aspect: true,
     snap: false,
     text: true,
+    note: true,
     note: false,
     newProject: false,
     save: false,
@@ -132,6 +133,9 @@
     });
     core.$('[data-act="addtext"]').addEventListener("click", function () {
       MN.interact.placeText();
+    });
+    core.$('[data-act="addnote"]').addEventListener("click", function () {
+      MN.interact.placeNote();
     });
     core.$('[data-act="zoomin"]').addEventListener("click", function () {
       MN.stage.zoomIn(viewCentre());

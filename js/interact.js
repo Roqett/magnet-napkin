@@ -70,12 +70,36 @@
     return item;
   }
 
+  /* A note is commentary. It lives in its own collection and never reaches
+     the clean PNG. */
+  function placeNote(text) {
+    const note = S.newNote(text == null ? "Note" : text);
+    note.x = (state.canvas.width - note.w) / 2;
+    note.y = (state.canvas.height - note.h) / 2;
+    MN.items.syncTextHeight(note);
+    state.notes.push(note);
+    S.commit("add note");
+    S.select("note", note.id);
+    MN.app.setStatus("Note added — commentary, never part of the clean PNG.");
+    setTimeout(function () { MN.inspector.focusField("text"); }, 0);
+    return note;
+  }
+
   /* ---------- dragging ---------- */
+
+  /* Items and notes are both canvas objects with the same fields. */
+  function findObject(id) {
+    return S.findItem(id) || S.findNote(id);
+  }
+
+  function objectType(obj) {
+    return S.findItem(obj.id) ? "item" : "note";
+  }
 
   function startDrag(e, item, mode) {
     e.preventDefault();
     e.stopPropagation();
-    S.select("item", item.id);
+    S.select(objectType(item), item.id);
     if (item.locked) {
       MN.app.setStatus("Locked — unlock it in the inspector to move it.");
       return;
@@ -104,7 +128,7 @@
 
   function onMove(e) {
     if (!drag) return;
-    const item = S.findItem(drag.id);
+    const item = findObject(drag.id);
     if (!item) return;
 
     const p = MN.stage.toCanvas(e.clientX, e.clientY);
@@ -121,7 +145,7 @@
       item.x = drag.x0 + lx;
       item.y = drag.y0 + ly;
     } else if (drag.mode === "resize") {
-      if (item.kind === "text" && item.autoHeight) {
+      if (item.kind !== "image" && item.autoHeight) {
         /* A text box resizes by its wrap width; the height follows the text. */
         item.w = Math.max(MIN_SIZE, drag.w0 + lx);
         MN.items.syncTextHeight(item);
@@ -165,8 +189,10 @@
     if (tag === "input" || tag === "textarea" || tag === "select") return;
     if (e.metaKey || e.ctrlKey || e.altKey) return;
 
-    const item = S.selectedItem();
-    if (!item) return;
+    if (!state.selection) return;
+    const obj = findObject(state.selection.id);
+    if (!obj) return;
+    const isNote = S.findNote(obj.id) !== null;
 
     if (e.key === "Escape") {
       S.deselect();
@@ -174,33 +200,24 @@
     }
     if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
-      S.removeItem(item.id);
-      S.commit("delete item");
+      if (isNote) S.removeNote(obj.id); else S.removeItem(obj.id);
+      S.commit("delete");
       return;
     }
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
-      e.preventDefault();
-      const copy = S.duplicateItem(item.id);
-      if (copy) {
-        S.commit("duplicate item");
-        S.select("item", copy.id);
-      }
-      return;
-    }
-    if (item.locked) return;
+    if (obj.locked) return;
 
     const step = e.shiftKey ? 10 : 1;
     let handled = true;
-    if (e.key === "ArrowLeft") item.x -= step;
-    else if (e.key === "ArrowRight") item.x += step;
-    else if (e.key === "ArrowUp") item.y -= step;
-    else if (e.key === "ArrowDown") item.y += step;
+    if (e.key === "ArrowLeft") obj.x -= step;
+    else if (e.key === "ArrowRight") obj.x += step;
+    else if (e.key === "ArrowUp") obj.y -= step;
+    else if (e.key === "ArrowDown") obj.y += step;
     else handled = false;
 
     if (handled) {
       e.preventDefault();
-      clampItem(item);
-      MN.items.updateItem(item);
+      clampItem(obj);
+      MN.items.updateItem(obj);
       MN.inspector.updateValues();
       /* Nudges coalesce: holding the arrow key is one undo step. */
       S.commit("nudge", { coalesce: "nudge" });
@@ -209,34 +226,20 @@
 
   /* ---------- wiring ---------- */
 
-  function wireItemsLayer() {
-    const layer = core.$("#items");
-    if (!layer) return;
-
-    layer.addEventListener("pointerdown", function (e) {
-      const el = e.target.closest ? e.target.closest(".magnet") : null;
-      if (!el) return;
-      const item = S.findItem(el.dataset.id);
-      if (!item) return;
-      if (e.target.classList.contains("handle")) startDrag(e, item, "resize");
-      else if (e.target.classList.contains("rot")) startDrag(e, item, "rotate");
-      else startDrag(e, item, "move");
-    });
-
-    layer.addEventListener("dblclick", function (e) {
-      const el = e.target.closest ? e.target.closest(".magnet") : null;
-      if (!el) return;
-      const item = S.findItem(el.dataset.id);
-      if (item) MN.inspector.focusField("text");
-    });
-  }
-
   function wireBoardSelection() {
     const board = core.$("#board");
     if (!board) return;
     board.addEventListener("pointerdown", function (e) {
-      if (e.target.closest && e.target.closest(".magnet")) return;
-      S.deselect();
+      const el = e.target.closest ? e.target.closest(".magnet") : null;
+      if (!el) {
+        S.deselect();
+        return;
+      }
+      const obj = findObject(el.dataset.id);
+      if (!obj) return;
+      if (e.target.classList.contains("handle")) startDrag(e, obj, "resize");
+      else if (e.target.classList.contains("rot")) startDrag(e, obj, "rotate");
+      else startDrag(e, obj, "move");
     });
   }
 
@@ -284,16 +287,28 @@
   }
 
   function boot() {
-    wireItemsLayer();
     wireBoardSelection();
     wireTray();
     wireDropOnCanvas();
     document.addEventListener("keydown", onKeyDown);
+
+    const board = core.$("#board");
+    if (board) {
+      board.addEventListener("dblclick", function (e) {
+        const el = e.target.closest ? e.target.closest(".magnet") : null;
+        if (!el) return;
+        const obj = findObject(el.dataset.id);
+        if (!obj) return;
+        S.select(objectType(obj), obj.id);
+        MN.inspector.focusField("text");
+      });
+    }
   }
 
   MN.interact = {
     placeAsset: placeAsset,
     placeText: placeText,
+    placeNote: placeNote,
     clampItem: clampItem,
     naturalSize: naturalSize,
   };

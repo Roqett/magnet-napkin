@@ -188,6 +188,7 @@
   function newNote(text) {
     return {
       id: core.uid("n"),
+      kind: "note",
       text: text == null ? "Note" : text,
       x: 0, y: 0, w: 140, h: 48,
       rotation: 0, opacity: 1, locked: false,
@@ -197,6 +198,9 @@
       color: "#1c1c1c",
       background: "#fff3b0",
       border: "dashed",
+      borderColor: "#b08900",
+      align: "left",
+      autoHeight: true,
       includeInCleanPNG: false,
       targetId: null,
     };
@@ -256,18 +260,40 @@
     return copy;
   }
 
-  function bringToFront(id) {
+  /* Items and notes each keep their own z-order inside their own array. */
+  function collectionOf(id) {
     const i = state.items.findIndex(function (it) { return it.id === id; });
-    if (i < 0 || i === state.items.length - 1) return false;
-    state.items.push(state.items.splice(i, 1)[0]);
+    if (i >= 0) return { list: state.items, index: i };
+    const n = state.notes.findIndex(function (nt) { return nt.id === id; });
+    if (n >= 0) return { list: state.notes, index: n };
+    return null;
+  }
+
+  function bringToFront(id) {
+    const c = collectionOf(id);
+    if (!c || c.index === c.list.length - 1) return false;
+    c.list.push(c.list.splice(c.index, 1)[0]);
     return true;
   }
 
   function sendToBack(id) {
-    const i = state.items.findIndex(function (it) { return it.id === id; });
-    if (i <= 0) return false;
-    state.items.unshift(state.items.splice(i, 1)[0]);
+    const c = collectionOf(id);
+    if (!c || c.index === 0) return false;
+    c.list.unshift(c.list.splice(c.index, 1)[0]);
     return true;
+  }
+
+  function removeObject(id) {
+    if (removeItem(id)) return true;
+    return removeNote(id);
+  }
+
+  function duplicateObject(id) {
+    const copy = duplicateItem(id);
+    if (copy) return { copy: copy, type: "item" };
+    const note = duplicateNote(id);
+    if (note) return { copy: note, type: "note" };
+    return null;
   }
 
   MN.state = {
@@ -280,8 +306,9 @@
     select: select, deselect: deselect, selectedItem: selectedItem, selectedNote: selectedNote,
     findItem: findItem, findNote: findNote, findAsset: findAsset,
     newTextItem: newTextItem, newNote: newNote, newImageItem: newImageItem,
-    removeItem: removeItem, removeNote: removeNote,
-    duplicateItem: duplicateItem, duplicateNote: duplicateNote,
+    removeItem: removeItem, removeNote: removeNote, removeObject: removeObject,
+    duplicateItem: duplicateItem, duplicateNote: duplicateNote, duplicateObject: duplicateObject,
     bringToFront: bringToFront, sendToBack: sendToBack,
+    collectionOf: collectionOf,
   };
 })(window.MN = window.MN || {});

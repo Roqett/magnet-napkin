@@ -206,28 +206,34 @@
     ]));
     frag.appendChild(buttonRow([
       button("Duplicate", function () {
-        const copy = S.duplicateItem(item.id);
-        if (copy) { S.commit("duplicate item"); S.select("item", copy.id); }
+        const result = S.duplicateObject(item.id);
+        if (result) { S.commit("duplicate"); S.select(result.type, result.copy.id); }
       }),
       button("Delete", function () {
-        S.removeItem(item.id);
-        S.commit("delete item");
+        S.removeObject(item.id);
+        S.commit("delete");
       }),
     ]));
 
     return frag;
   }
 
-  /* ---------- text section ---------- */
+  /* ---------- text and note section ---------- */
 
-  function buildTextSection(item) {
+  function buildTextSection(item, isNote) {
     const frag = document.createDocumentFragment();
-    frag.appendChild(section("Text"));
+    frag.appendChild(section(isNote ? "Note" : "Text"));
+
+    if (isNote) {
+      frag.appendChild(core.el("p", { class: "note-warning" }, [
+        document.createTextNode("A note is commentary. It is drawn on the annotated PNG and never on the clean one."),
+      ]));
+    }
 
     const textArea = core.el("textarea", {
       id: "i-text",
       rows: "3",
-      "aria-label": "Text content",
+      "aria-label": isNote ? "Note text" : "Text content",
     });
     textArea.value = item.text == null ? "" : item.text;
     const applyText = function () {
@@ -242,7 +248,7 @@
       S.commit("edit text");
     });
     frag.appendChild(core.el("div", { class: "field wide" }, [
-      core.el("label", { text: "Content" }), textArea,
+      core.el("label", { text: isNote ? "Comment" : "Content" }), textArea,
     ]));
 
     const font = core.el("select", { id: "i-font", "aria-label": "Font family" },
@@ -300,33 +306,49 @@
     });
     frag.appendChild(row("Colour", colour));
 
-    const hasBackground = item.background && item.background !== "transparent";
-    const bgMode = core.el("select", { id: "i-bgmode", "aria-label": "Text background" }, [
-      core.el("option", { value: "transparent", text: "None" }),
-      core.el("option", { value: "colour", text: "Colour" }),
-    ]);
-    bgMode.value = hasBackground ? "colour" : "transparent";
-    bgMode.addEventListener("change", function () {
-      item.background = bgMode.value === "colour" ? (item.color || "#e8eaee") : "transparent";
-      if (bgMode.value === "colour" && item.color === item.background) item.background = "#e8eaee";
-      MN.items.updateItem(item);
-      S.commit("edit text background");
-      render();
-    });
-    frag.appendChild(row("Backdrop", bgMode));
-
-    if (hasBackground) {
+    if (isNote) {
+      /* A note is always on paper: it never has a transparent backdrop. */
       const bgColour = core.el("input", {
-        id: "i-textbg", type: "color", value: item.background, "aria-label": "Text background colour",
+        id: "i-textbg", type: "color", value: item.background || "#fff3b0", "aria-label": "Note paper colour",
       });
       bgColour.addEventListener("input", function () {
         item.background = bgColour.value;
         MN.items.updateItem(item);
       });
-      bgColour.addEventListener("change", function () { S.commit("edit text background"); });
-      frag.appendChild(row("Colour", bgColour));
-    }
+      bgColour.addEventListener("change", function () {
+        item.background = bgColour.value;
+        MN.items.updateItem(item);
+        S.commit("edit note colour");
+      });
+      frag.appendChild(row("Paper", bgColour));
+    } else {
+      const hasBackground = item.background && item.background !== "transparent";
+      const bgMode = core.el("select", { id: "i-bgmode", "aria-label": "Text background" }, [
+        core.el("option", { value: "transparent", text: "None" }),
+        core.el("option", { value: "colour", text: "Colour" }),
+      ]);
+      bgMode.value = hasBackground ? "colour" : "transparent";
+      bgMode.addEventListener("change", function () {
+        item.background = bgMode.value === "colour" ? (item.color || "#e8eaee") : "transparent";
+        if (bgMode.value === "colour" && item.color === item.background) item.background = "#e8eaee";
+        MN.items.updateItem(item);
+        S.commit("edit text background");
+        render();
+      });
+      frag.appendChild(row("Backdrop", bgMode));
 
+      if (hasBackground) {
+        const bgColour = core.el("input", {
+          id: "i-textbg", type: "color", value: item.background, "aria-label": "Text background colour",
+        });
+        bgColour.addEventListener("input", function () {
+          item.background = bgColour.value;
+          MN.items.updateItem(item);
+        });
+        bgColour.addEventListener("change", function () { S.commit("edit text background"); });
+        frag.appendChild(row("Colour", bgColour));
+      }
+    }
     const align = core.el("select", { id: "i-align", "aria-label": "Text alignment" }, [
       core.el("option", { value: "left", text: "Left" }),
       core.el("option", { value: "center", text: "Centre" }),
@@ -376,9 +398,13 @@
     bodyEl.appendChild(section("Selection"));
 
     const item = S.selectedItem();
+    const note = S.selectedNote();
     if (item) {
       bodyEl.appendChild(buildItemSection(item));
-      if (item.kind === "text") bodyEl.appendChild(buildTextSection(item));
+      if (item.kind === "text") bodyEl.appendChild(buildTextSection(item, false));
+    } else if (note) {
+      bodyEl.appendChild(buildItemSection(note));
+      bodyEl.appendChild(buildTextSection(note, true));
     } else {
       bodyEl.appendChild(buildHint());
     }
@@ -398,17 +424,17 @@
      drag is in flight. */
   function updateValues() {
     if (!bodyEl) return;
-    const item = S.selectedItem();
-    if (!item) return;
+    const obj = S.selectedItem() || S.selectedNote();
+    if (!obj) return;
     const set = function (id, value) {
       const el = core.$("#" + id, bodyEl);
       if (el && document.activeElement !== el) el.value = core.fmtNum(value, 3);
     };
-    set("i-x", item.x);
-    set("i-y", item.y);
-    set("i-w", item.w);
-    set("i-h", item.h);
-    set("i-rot", item.rotation || 0);
+    set("i-x", obj.x);
+    set("i-y", obj.y);
+    set("i-w", obj.w);
+    set("i-h", obj.h);
+    set("i-rot", obj.rotation || 0);
   }
 
   function focusField(name) {

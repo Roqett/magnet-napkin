@@ -1,7 +1,7 @@
-/* Magnet Napkin — items on the canvas.
-   Each item is a positioned DOM element. Geometry lives in canvas units in
-   state; the DOM is just a view of it, recomputed whenever the view zoom or
-   the item changes. */
+/* Magnet Napkin — items and notes on the canvas.
+   Both are positioned DOM elements with the same handles. Items are design
+   content and live in the items layer; notes are commentary and live in the
+   notes layer, above everything. They are never merged. */
 (function (MN) {
   "use strict";
 
@@ -9,7 +9,22 @@
   const S = MN.state;
   const state = S.state;
 
-  const layer = core.$("#items");
+  const itemsLayer = core.$("#items");
+  const notesLayer = core.$("#notes");
+
+  /* Note chrome, in canvas units, so the editor and the exported PNG agree.
+     The border is in units too: a CSS border would stay one screen pixel at
+     any zoom and the note's text would be clipped by a different amount in
+     the editor than in the export. */
+  const NOTE = {
+    pad: 6,
+    borderWidth: 1,
+    badgeW: 26,
+    badgeH: 11,
+    badgeFont: 8,
+    badgeText: "NOTE",
+  };
+
   const els = new Map();
 
   function ppu() {
@@ -17,7 +32,7 @@
   }
 
   function isSelected(id) {
-    return !!(state.selection && state.selection.type === "item" && state.selection.id === id);
+    return !!(state.selection && state.selection.id === id);
   }
 
   function labelFor(item) {
@@ -26,6 +41,7 @@
       return asset ? asset.name : "Missing image";
     }
     if (item.kind === "text") return item.text || "Text";
+    if (item.kind === "note") return "Note";
     return item.kind;
   }
 
@@ -36,15 +52,32 @@
 
   /* The intrinsic aspect ratio of an image item, used by the aspect lock. */
   function ratioOf(item) {
-    if (item.kind === "text") return 0;
+    if (item.kind !== "image") return 0;
     const asset = S.findAsset(item.assetId);
     if (asset && asset.height) return asset.width / asset.height;
     return item.h ? item.w / item.h : 0;
   }
 
-  function makeEl(item) {
+  /* The width the text of a box may occupy. Notes keep a margin inside
+     their border. */
+  function textWidthOf(item) {
+    return item.kind === "note" ? Math.max(1, item.w - NOTE.pad * 2) : Math.max(0, item.w);
+  }
+
+  function layoutOf(item) {
+    return MN.textlayout.layoutText({
+      text: item.text,
+      fontFamily: item.fontFamily,
+      fontSize: item.fontSize,
+      fontWeight: item.fontWeight,
+      width: textWidthOf(item),
+      align: item.align || "left",
+    });
+  }
+
+  function makeEl(item, isNote) {
     const el = core.el("div", {
-      class: "magnet" + (item.kind === "text" ? " text-item" : ""),
+      class: "magnet" + (isNote ? " note" : item.kind === "text" ? " text-item" : ""),
       dataset: { id: item.id },
       tabindex: "0",
       role: "button",
@@ -53,9 +86,10 @@
     if (item.kind === "image") {
       const asset = S.findAsset(item.assetId);
       el.appendChild(core.el("img", { src: asset ? asset.url : "", alt: "", draggable: "false" }));
-    } else if (item.kind === "text") {
+    } else {
       el.appendChild(core.el("div", { class: "text-body" }));
     }
+    if (isNote) el.appendChild(core.el("div", { class: "badge", text: NOTE.badgeText }));
     el.appendChild(core.el("div", { class: "handle", title: "Resize" }));
     el.appendChild(core.el("div", { class: "rot", title: "Rotate — hold Shift for 15° steps" }));
     el.appendChild(core.el("div", { class: "tag" }));
@@ -68,16 +102,8 @@
     const body = el.querySelector(".text-body");
     if (!body) return null;
 
-    const layout = MN.textlayout.layoutText({
-      text: item.text,
-      fontFamily: item.fontFamily,
-      fontSize: item.fontSize,
-      fontWeight: item.fontWeight,
-      width: item.w,
-      align: item.align,
-    });
-
-    const key = [item.text, item.fontFamily, item.fontSize, item.fontWeight, item.w, item.align].join("|");
+    const layout = layoutOf(item);
+    const key = [item.text, item.fontFamily, item.fontSize, item.fontWeight, textWidthOf(item), item.align].join("|");
     if (body._key !== key) {
       body._key = key;
       body.textContent = "";
@@ -99,21 +125,17 @@
     return layout;
   }
 
-  /* Keep an auto-height text box exactly as tall as its content. */
+  /* Keep an auto-height text box exactly as tall as its content. A note has
+     a margin inside its border, so the box is that much taller again. */
   function syncTextHeight(item) {
-    if (!item || item.kind !== "text" || !item.autoHeight) return;
-    const layout = MN.textlayout.layoutText({
-      text: item.text,
-      fontFamily: item.fontFamily,
-      fontSize: item.fontSize,
-      fontWeight: item.fontWeight,
-      width: item.w,
-      align: item.align,
-    });
-    if (Math.abs(layout.height - item.h) > 0.0001) item.h = layout.height;
+    if (!item || item.kind === "image" || !item.autoHeight) return;
+    const layout = layoutOf(item);
+    const chrome = item.kind === "note" ? NOTE.pad * 2 + NOTE.borderWidth * 2 : 0;
+    const height = layout.height + chrome;
+    if (Math.abs(height - item.h) > 0.0001) item.h = height;
   }
 
-  function applyStyle(el, item) {
+  function applyStyle(el, item, isNote) {
     const p = ppu();
     el.style.left = item.x * p + "px";
     el.style.top = item.y * p + "px";
@@ -125,34 +147,56 @@
     el.classList.toggle("selected", isSelected(item.id));
     const tag = el.querySelector(".tag");
     if (tag) tag.textContent = tagText(item);
-    if (item.kind === "text") {
-      renderTextBody(el, item, p);
+
+    if (isNote) {
+      const body = el.querySelector(".text-body");
+      if (body) {
+        body.style.inset = NOTE.pad * p + "px";
+        body.style.background = item.background || "#fff3b0";
+        body.style.color = item.color || "#1c1c1c";
+      }
+      el.style.background = item.background || "#fff3b0";
+      el.style.borderColor = item.borderColor || "#b08900";
+      el.style.borderWidth = NOTE.borderWidth * p + "px";
+      const badge = el.querySelector(".badge");
+      if (badge) {
+        badge.style.width = NOTE.badgeW * p + "px";
+        badge.style.height = NOTE.badgeH * p + "px";
+        badge.style.fontSize = NOTE.badgeFont * p + "px";
+        badge.style.top = (-NOTE.badgeH - 1) * p + "px";
+        badge.style.left = -2 * p + "px";
+      }
+    }
+
+    if (item.kind === "image") {
+      const img = el.querySelector("img");
+      if (img) {
+        const asset = S.findAsset(item.assetId);
+        const url = asset ? asset.url : "";
+        if (img.getAttribute("src") !== url) img.setAttribute("src", url);
+      }
       return;
     }
-    const img = el.querySelector("img");
-    if (img) {
-      const asset = S.findAsset(item.assetId);
-      const url = asset ? asset.url : "";
-      if (img.getAttribute("src") !== url) img.setAttribute("src", url);
-    }
+    renderTextBody(el, item, p);
   }
 
   /* Keyed render: create what is new, drop what is gone, and keep the DOM
      order in step with the array order, which is the z-order. */
-  function renderItems() {
+  function renderLayer(collection, layer, isNote) {
     if (!layer) return;
     const seen = new Set();
-    for (const item of state.items) {
+    for (const item of collection) {
       seen.add(item.id);
       let el = els.get(item.id);
       if (!el) {
-        el = makeEl(item);
+        el = makeEl(item, isNote);
         els.set(item.id, el);
       }
-      applyStyle(el, item);
+      applyStyle(el, item, isNote);
       layer.appendChild(el);
     }
-    for (const pair of els) {
+    for (const pair of Array.from(els)) {
+      if (pair[1].parentNode !== layer) continue;
       if (!seen.has(pair[0])) {
         pair[1].remove();
         els.delete(pair[0]);
@@ -160,9 +204,14 @@
     }
   }
 
+  function renderItems() {
+    renderLayer(state.items, itemsLayer, false);
+    renderLayer(state.notes, notesLayer, true);
+  }
+
   function updateItem(item) {
     const el = els.get(item.id);
-    if (el) applyStyle(el, item);
+    if (el) applyStyle(el, item, S.findNote(item.id) !== null);
   }
 
   function elementFor(id) {
@@ -184,6 +233,9 @@
     ratioOf: ratioOf,
     tagText: tagText,
     syncTextHeight: syncTextHeight,
+    layoutOf: layoutOf,
+    textWidthOf: textWidthOf,
+    NOTE: NOTE,
   };
 
   if (document.readyState === "loading") {
