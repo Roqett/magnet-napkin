@@ -17,7 +17,7 @@ A single static page — vanilla HTML, CSS and JavaScript — that lets someone 
 
 **MVP only.** The Definition of Done is §9 of the handover. Stop there.
 
-**Non-goals:** accounts, cloud, collaboration, comments, AI generation, vector editing, PDF, mobile-first layout, analytics, backend, npm, frameworks, and an MCP server in this build. The notes are static text, not a commenting system.
+**Non-goals:** accounts, cloud, collaboration, comments, AI generation, vector editing, PDF, mobile-first layout, analytics, backend, npm, frameworks, and an MCP server as a product feature in this build. Development MCP/tooling is fine; a shipped MCP server is not. The notes are static text, not a commenting system.
 
 ## 2. Non-negotiables
 
@@ -26,7 +26,7 @@ A single static page — vanilla HTML, CSS and JavaScript — that lets someone 
 - **Canvas units, not pixels.** Store geometry in the chosen unit (`px`, `pt`, `mm`, `in`); render at `scale`. Never store screen pixels.
 - **Text is design content; notes are not.** Text lives in `items` and appears in the clean PNG. Notes live in `notes`, are hidden from the clean PNG, appear in the annotated PNG, and are never merged into `items`.
 - **No Redline source assets.** The only Redline image allowed is the promotional capture at `docs/demo/redline-gt40.jpg`; no fonts, artwork or brand files.
-- **No MCP in this build.** The export format (`layout.json` + two PNGs + `notes.md`) is the interface. An MCP is a later, separate, read-only wrapper.
+- **No MCP server as a product feature in this build.** The export format (`layout.json` + two PNGs + `notes.md`) is the interface. Development MCP/tooling is fine. A shipped MCP is a later, separate, read-only wrapper.
 - **Security.** Never `innerHTML` untrusted filenames or text; load SVG through `<img>`; no `eval`; no third-party runtime scripts.
 - **Accessibility.** Keyboard selection, arrow nudge, visible focus, labels on controls. The app should be usable without a mouse for the common path.
 - **Commits.** One coherent change per commit; Conventional Commits; no secrets, no generated junk, no Redline assets.
