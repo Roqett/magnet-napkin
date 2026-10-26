@@ -188,6 +188,18 @@ input[type="search"] { width: 100%; }
 }
 .summary b { color: var(--text); font-weight: 600; }
 
+.selected-name {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row { display: flex; gap: 6px; margin: 8px 0; }
+.row button { flex: 1 1 auto; font-size: 11px; padding: 5px 4px; }
+
 .panelhead {
   display: flex;
   align-items: baseline;
@@ -373,6 +385,72 @@ body.dropping::after {
 #empty-state ol { text-align: left; margin: 0 0 14px; padding-left: 20px; line-height: 1.9; }
 #empty-state p { max-width: 44ch; margin: 0; }
 #empty-state .muted { color: #6b7382; }
+
+/* ---------- items on the canvas ---------- */
+
+.magnet {
+  position: absolute;
+  transform-origin: center center;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+.magnet:active { cursor: grabbing; }
+.magnet img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.magnet.selected { outline: 1.5px solid var(--accent); outline-offset: 2px; }
+.magnet.locked { cursor: default; }
+
+.magnet .handle {
+  position: absolute;
+  right: -7px; bottom: -7px;
+  width: 14px; height: 14px;
+  background: var(--accent);
+  border: 1px solid #0b1220;
+  border-radius: 2px;
+  cursor: nwse-resize;
+  display: none;
+  touch-action: none;
+  z-index: 3;
+}
+.magnet.selected .handle { display: block; }
+
+.magnet .rot {
+  position: absolute;
+  left: 50%; top: -28px;
+  width: 12px; height: 12px;
+  margin-left: -6px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid #0b1220;
+  cursor: grab;
+  display: none;
+  z-index: 3;
+}
+.magnet.selected .rot { display: block; }
+
+.magnet .tag {
+  position: absolute;
+  left: 50%; bottom: -22px;
+  transform: translateX(-50%);
+  background: #0b0c0f;
+  color: #cfd3da;
+  border: 1px solid #30343d;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font: 10px/1.4 var(--mono);
+  white-space: nowrap;
+  display: none;
+  pointer-events: none;
+  z-index: 2;
+}
+.magnet.selected .tag { display: block; }
 
 /* ---------- handoff dialog ---------- */
 

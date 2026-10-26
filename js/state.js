@@ -59,6 +59,8 @@
      only pointer-up does, so a drag is a single undo step. */
 
   const history = { past: [], future: [] };
+  let lastCoalesceKey = null;
+  let lastCommitAt = 0;
 
   function snapshot() {
     return {
@@ -76,25 +78,47 @@
     state.selection = snap.selection ? core.clone(snap.selection) : null;
   }
 
-  function commit(label) {
+  /* A commit pushes the state as it stands *after* the change. Undo pops the
+     last commit and restores the one before it. Pointer moves never commit;
+     only pointer-up does, so a drag is a single undo step.
+
+     `coalesce` folds a run of same-key commits (holding an arrow key) into
+     one history entry. */
+  function commit(label, options) {
+    const opts = options || {};
+    const now = Date.now();
+
+    if (opts.coalesce && opts.coalesce === lastCoalesceKey && now - lastCommitAt < 700) {
+      lastCommitAt = now;
+      history.past[history.past.length - 1] = snapshot();
+      emit("change", { label: label || "edit" });
+      return;
+    }
+
+    lastCoalesceKey = opts.coalesce || null;
+    lastCommitAt = now;
     history.past.push(snapshot());
     if (history.past.length > HISTORY_LIMIT) history.past.shift();
     history.future.length = 0;
     emit("change", { label: label || "edit" });
   }
 
+  /* The last entry of `past` is always the current state. Undo moves the
+     current state to `future` and restores the one before it, so undo can
+     reach the state the board started in. */
   function undo() {
     if (history.past.length <= 1) return false;
-    history.future.push(snapshot());
-    restore(history.past.pop());
+    history.future.push(history.past.pop());
+    restore(history.past[history.past.length - 1]);
     emit("change", { label: "undo" });
     return true;
   }
 
   function redo() {
     if (!history.future.length) return false;
-    history.past.push(snapshot());
-    restore(history.future.pop());
+    const next = history.future.pop();
+    history.past.push(next);
+    restore(next);
     emit("change", { label: "redo" });
     return true;
   }

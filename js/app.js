@@ -14,6 +14,8 @@
     zoom: true,
     zoomfit: true,
     import: true,
+    aspect: true,
+    snap: false,
     text: false,
     note: false,
     newProject: false,
@@ -49,6 +51,10 @@
     core.$$("[data-act]").forEach(function (btn) {
       const cap = ACT_CAP[btn.dataset.act];
       btn.disabled = !!(cap && !CAPS[cap]);
+    });
+    core.$$("[data-cap]").forEach(function (input) {
+      const cap = input.dataset.cap;
+      input.disabled = !!(cap && !CAPS[cap]);
     });
   }
 
