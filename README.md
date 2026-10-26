@@ -2,7 +2,7 @@
 
 **A napkin for your assets.** Drop a folder of images onto a canvas of a known size, move them around like magnets, and export the layout.
 
-> **Status:** pre-build. The build brief, scope and technical decisions are in [`01-MAGNET-NAPKIN-HANDOVER.md`](01-MAGNET-NAPKIN-HANDOVER.md).
+> **Status:** pre-build. The build brief, scope and technical decisions are in [`01-MAGNET-NAPKIN-HANDOVER.md`](01-MAGNET-NAPKIN-HANDOVER.md). The working rules and harness setup are in [`AGENTS.md`](AGENTS.md).
 
 ## The idea
 
@@ -33,6 +33,8 @@ A single static page — HTML, CSS and vanilla JavaScript — that runs from dis
 ## Build
 
 The MVP scope, data model, file format, UX shape, acceptance criteria and first-session prompt are all in [`01-MAGNET-NAPKIN-HANDOVER.md`](01-MAGNET-NAPKIN-HANDOVER.md).
+
+Working rules, MCP/skill choices and the gate live in [`AGENTS.md`](AGENTS.md). If you are building on DeepSeek Harness, read [`docs/AGENTS-DSH.md`](docs/AGENTS-DSH.md). For another project, copy [`docs/AGENTS-TEMPLATE.md`](docs/AGENTS-TEMPLATE.md) and fill the placeholders.
 
 ## License
 

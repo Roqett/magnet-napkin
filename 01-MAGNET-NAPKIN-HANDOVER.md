@@ -386,12 +386,15 @@ magnet-napkin/
   styles.css
   app.js                 # classic script; no modules required
   README.md
+  AGENTS.md              # working rules, MCPs/skills, gates
   LICENSE                # MIT
   01-MAGNET-NAPKIN-HANDOVER.md   # this file
   docs/
     FORMAT.md            # .napkin.json
     SHORTCUTS.md
     AGENT_HANDOFF.md     # notes.md, clean vs annotated, MCP later
+    AGENTS-DSH.md        # DeepSeek Harness setup
+    AGENTS-TEMPLATE.md   # reusable AGENTS.md for other projects
   samples/               # optional, original/CC0 art only
 ```
 
@@ -429,7 +432,7 @@ The MVP is done when all of these are true:
 
 Use this as the kickoff, and keep the scope narrow:
 
-> Build **Magnet Napkin** from `01-MAGNET-NAPKIN-HANDOVER.md`. Read the whole handover first. Build the MVP only: folder import, canvas size/units, drag/resize/rotate, inspector, z-order/lock/opacity, keyboard nudge, undo/redo, snapping/guides, **basic text boxes**, **notes that are separate from the design**, IndexedDB autosave, clean and annotated PNG export, JSON project import/export, and the **notes.md handoff**. Vanilla HTML/CSS/JS, no framework, no build step, no backend, no accounts, no cloud. One static page that opens from disk and on GitHub Pages. Stop at the Definition of Done and report what is done and what is deliberately deferred. Do not build an MCP in this session. Do not add stretch features.
+> Build **Magnet Napkin** from `01-MAGNET-NAPKIN-HANDOVER.md`. Read the whole handover first, then `AGENTS.md`. Build the MVP only: folder import, canvas size/units, drag/resize/rotate, inspector, z-order/lock/opacity, keyboard nudge, undo/redo, snapping/guides, **basic text boxes**, **notes that are separate from the design**, IndexedDB autosave, clean and annotated PNG export, JSON project import/export, and the **notes.md handoff**. Vanilla HTML/CSS/JS, no framework, no build step, no backend, no accounts, no cloud. One static page that opens from disk and on GitHub Pages. Stop at the Definition of Done and report what is done and what is deliberately deferred. Do not build an MCP in this session. Do not add stretch features.
 
 A useful first response from the new session: restate the MVP and the Definition of Done in its own words, list the files it will create, then build in that order.
 
