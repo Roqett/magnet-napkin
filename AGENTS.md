@@ -6,8 +6,9 @@ This is the working brief for any coding agent in this repo. OpenCode reads it; 
 
 1. `01-MAGNET-NAPKIN-HANDOVER.md` — the spec. Read it in full.
 2. `README.md` — the public promise.
-3. This file — working rules, tooling and gates.
-4. The code.
+3. `docs/PLAN.md` — the current phase plan, decisions and gates.
+4. This file — working rules, tooling and gates.
+5. The code.
 
 When they disagree: the handover wins on **scope**, this file wins on **process**, and the code wins on **what exists**. Record any conflict rather than silently working around it.
 

@@ -32,7 +32,7 @@ A single static page — HTML, CSS and vanilla JavaScript — that runs from dis
 
 ## Build
 
-The MVP scope, data model, file format, UX shape, acceptance criteria and first-session prompt are all in [`01-MAGNET-NAPKIN-HANDOVER.md`](01-MAGNET-NAPKIN-HANDOVER.md).
+The MVP scope, data model, file format, UX shape, acceptance criteria and first-session prompt are all in [`01-MAGNET-NAPKIN-HANDOVER.md`](01-MAGNET-NAPKIN-HANDOVER.md). The current build plan, its open decisions and the verification matrix are in [`docs/PLAN.md`](docs/PLAN.md).
 
 Working rules, MCP/skill choices and the gate live in [`AGENTS.md`](AGENTS.md). If you are building on DeepSeek Harness, read [`docs/AGENTS-DSH.md`](docs/AGENTS-DSH.md). For another project, copy [`docs/AGENTS-TEMPLATE.md`](docs/AGENTS-TEMPLATE.md) and fill the placeholders.
 
