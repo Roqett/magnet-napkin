@@ -1,8 +1,8 @@
 # Napkinetic
 
-**A napkin for your assets.** Drop a folder of images onto a canvas of a known size, move them around like magnets, leave notes that are clearly *not* part of the design, and export the layout plus a brief for a vision agent.
+**A napkin sketch (with teeth : actual metrics ) for your assets.** Drop a folder of images onto a canvas of a known size, move them around like magnets, leave notes that are clearly *not* part of the design, and export the layout plus a brief for a vision agent.
 
-No accounts. No cloud. No install. No build step. No network calls after the page loads.
+Nothing much to learn , No accounts. No cloud. No install. No build step. No network calls after the page loads.
 
 ![Napkinetic: a board with assets from the tray, a label and a sticky note](docs/demo/napkinetic.gif)
 
