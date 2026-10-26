@@ -39,8 +39,9 @@ The board is the point. The layout is a by-product: it is what you hand to a dev
 3. **Place** an asset by dragging it from the tray onto the canvas, or by clicking it to drop it in the middle. It arrives at its own size — set **Asset ratio** to `2` if your files are `@2x` artwork.
 4. **Arrange**: drag to move, corner handle to resize, the circle above the item to rotate (hold <kbd>Shift</kbd> for 15° steps).
 5. **Type** the exact numbers into the inspector when the pixels are not enough.
-6. **Add notes** where a decision needs explaining.
-7. **Hand it over**: the Handoff button gives you the four files.
+6. **Set the background** if the board is not a light grey: a solid colour, a checker, or one of your own images — the generic equivalent of the prototype's Panel and Underlay switches.
+7. **Add notes** where a decision needs explaining.
+8. **Hand it over**: the Handoff button gives you the four files.
 
 Shortcuts are in [docs/SHORTCUTS.md](docs/SHORTCUTS.md). The file format is in [docs/FORMAT.md](docs/FORMAT.md).
 

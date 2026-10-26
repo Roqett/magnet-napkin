@@ -365,3 +365,33 @@ Two things came out of it:
   owner can make. The same suite runs unchanged once it is on.
 - The two open questions in §10.
 - The handover's stretch list is untouched, as promised.
+
+### The bug the owner found, and what it taught
+
+The owner placed an image on the sheet and then could not select it with the
+mouse: every click on the artwork was landing on the empty **notes layer**,
+which is a transparent `<div>` covering the whole board. It sat above the
+items layer and swallowed the pointer, so a click deselected instead of
+selecting, and the resize handle could not be reached.
+
+The layers are now containers, not surfaces:
+
+```css
+#bg, #grid, #guides, #items, #notes { pointer-events: none; }
+.magnet { pointer-events: auto; }
+```
+
+Two lessons, both now in the smoke test:
+
+1. **Synthetic events hide hit-testing bugs.** Every earlier test dispatched
+   events straight at an element, which bypasses whatever is painted on top.
+   The suite now asks the browser what is actually under the pointer with
+   `elementFromPoint`, and presses that element.
+2. **A real click is the test.** `browser.click` on the canvas now selects the
+   placed image, the resize handle is under the pointer, and dragging it
+   resizes by exactly the pointer delta and keeps the selection.
+
+Also fixed while I was in there: a double click in the tray placed two copies
+of the same asset, and the canvas background could not be set to an image —
+the format and the exporter both supported it, but the inspector did not
+offer it.

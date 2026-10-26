@@ -6,7 +6,7 @@
 |---|---|
 | Import a folder | drop it anywhere on the page, or **Import folder…** |
 | Place an asset | drag it from the tray onto the canvas |
-| Place an asset in the middle | click it in the tray |
+| Place an asset in the middle | click it in the tray (a double click places one, not two) |
 | Select | click the item |
 | Move | drag the item |
 | Resize | drag the corner handle, bottom right |
