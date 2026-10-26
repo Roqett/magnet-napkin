@@ -117,7 +117,7 @@ Text items carry their own font settings, and the same settings drive the screen
 
 | Field | Meaning |
 |---|---|
-| `fontFamily` | one of `system-ui`, `Georgia`, `Menlo`, `Avenir Next Condensed`, `Helvetica Neue` |
+| `fontFamily` | one of `system-ui`, `Georgia`, `Menlo`, `Arial Narrow`, `Helvetica Neue` |
 | `fontSize` | in canvas units |
 | `fontWeight` | 100 to 900 |
 | `color` | any CSS colour |
@@ -125,7 +125,7 @@ Text items carry their own font settings, and the same settings drive the screen
 | `align` | `left`, `center` or `right` |
 | `autoHeight` | when true, `h` follows the content and `w` is the wrap width |
 
-`Avenir Next Condensed` is a macOS font. On a machine without it the browser falls back to the next family in the stack, and the exported PNG uses the same fallback because it is the same browser.
+The picker only offers faces that exist on macOS, Windows and Linux — `system-ui`, `Georgia`, `Menlo`, `Arial Narrow`, `Helvetica Neue` — so a board made on one machine looks the same on another. A font that is not on the machine falls back to the next family in its stack, and the exported PNG uses the same fallback because it is the same browser.
 
 ## Notes
 

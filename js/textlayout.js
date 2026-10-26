@@ -14,15 +14,22 @@
   const PRECISION = 4;
   const LINE_HEIGHT = 1.2;
 
+  /* The resolution table. Anything not in here falls back to system-ui, so a
+     project that names a font this machine does not have still renders. */
   const FONT_STACKS = {
     "system-ui": 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     "Georgia": 'Georgia, "Times New Roman", Times, serif',
     "Menlo": 'Menlo, Consolas, "Courier New", monospace',
-    "Avenir Next Condensed": '"Avenir Next Condensed", "Arial Narrow", "Helvetica Neue", sans-serif',
+    "Arial Narrow": '"Arial Narrow", "Helvetica Neue", Arial, sans-serif',
     "Helvetica Neue": '"Helvetica Neue", Helvetica, Arial, sans-serif',
+    /* macOS only, and not offered in the picker, but still resolved for the
+       projects and samples that ask for it. */
+    "Avenir Next Condensed": '"Avenir Next Condensed", "Arial Narrow", "Helvetica Neue", sans-serif',
   };
 
-  const FONT_NAMES = Object.keys(FONT_STACKS);
+  /* What the picker offers: the faces that exist on macOS, Windows and
+     Linux, so a board made on one machine looks the same on another. */
+  const FONT_NAMES = ["system-ui", "Georgia", "Menlo", "Arial Narrow", "Helvetica Neue"];
 
   let measureCtx = null;
 
