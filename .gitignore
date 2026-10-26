@@ -12,3 +12,8 @@ tests/result.png
 # If a dev server or bundler ever appears
 node_modules/
 dist/
+
+# Diagnostic captures
+tests/probe.png
+tests/result.png
+tests/result.txt
