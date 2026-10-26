@@ -321,6 +321,7 @@
     placeNote: placeNote,
     clampItem: clampItem,
     naturalSize: naturalSize,
+    isDragging: function () { return !!drag; },
   };
 
   if (document.readyState === "loading") {

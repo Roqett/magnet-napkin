@@ -99,6 +99,7 @@
 
     renderTray();
     S.emit("change", { label: "import assets" });
+    S.emit("assets-imported", { added: added, skipped: skipped });
     return { added: added, skipped: skipped };
   }
 

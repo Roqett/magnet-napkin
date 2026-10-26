@@ -18,10 +18,9 @@
     snap: true,
     text: true,
     note: true,
-    note: false,
-    newProject: false,
-    save: false,
-    open: false,
+    newProject: true,
+    save: true,
+    open: true,
     exportPng: false,
     handoff: false,
   };
@@ -161,6 +160,66 @@
 
   /* ---------- history wiring (available from the start) ---------- */
 
+  /* ---------- project actions ---------- */
+
+  function wireProjectActions() {
+    core.$('[data-act="new"]').addEventListener("click", function () {
+      if (state.items.length || state.notes.length) {
+        const ok = window.confirm("Clear the board? The imported images stay in the tray.");
+        if (!ok) return;
+      }
+      state.items.length = 0;
+      state.notes.length = 0;
+      state.selection = null;
+      S.commit("new board");
+      MN.project.clearStored().catch(function () { /* nothing stored yet */ });
+      setStatus("Board cleared. The images are still in the tray.");
+    });
+
+    core.$('[data-act="save"]').addEventListener("click", function () {
+      const dialog = core.$("#save-dialog");
+      if (dialog && typeof dialog.showModal === "function") dialog.showModal();
+      else MN.project.saveFile(false);
+    });
+
+    core.$('[data-act="open"]').addEventListener("click", function () {
+      core.$("#json-input").click();
+    });
+
+    const jsonInput = core.$("#json-input");
+    jsonInput.addEventListener("change", function (e) {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file) return;
+      MN.project.openFile(file).then(function (result) {
+        setStatus("Opened " + file.name + " · " + state.items.length + " item" +
+          (state.items.length === 1 ? "" : "s") + ", " + state.notes.length + " note" +
+          (state.notes.length === 1 ? "" : "s") + ".");
+        if (!result || !result.missing.length) setStatus("Opened " + file.name + ".");
+      }).catch(function (err) {
+        window.alert(err && err.message ? err.message : "That project could not be opened.");
+      });
+    });
+
+    const saveDialog = core.$("#save-dialog");
+    core.$("#save-small").addEventListener("click", function () {
+      saveDialog.close();
+      MN.project.saveFile(false);
+    });
+    core.$("#save-embedded").addEventListener("click", function () {
+      saveDialog.close();
+      MN.project.saveFile(true);
+    });
+    core.$("#close-save").addEventListener("click", function () { saveDialog.close(); });
+
+    const missingDialog = core.$("#missing-dialog");
+    core.$("#relink").addEventListener("click", function () {
+      missingDialog.close();
+      MN.assets.openFolderPicker();
+    });
+    core.$("#dismiss-missing").addEventListener("click", function () { missingDialog.close(); });
+  }
+
   function wireHistory() {
     core.$('[data-act="undo"]').addEventListener("click", function () {
       if (S.undo()) setStatus("Undone");
@@ -191,6 +250,7 @@
     updateEmptyState();
     wireCanvasControls();
     wireViewControls();
+    wireProjectActions();
     wireHistory();
     S.resetHistory();
     S.on("change", function () {

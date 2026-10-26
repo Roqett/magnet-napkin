@@ -85,7 +85,12 @@
     });
     if (item.kind === "image") {
       const asset = S.findAsset(item.assetId);
-      el.appendChild(core.el("img", { src: asset ? asset.url : "", alt: "", draggable: "false" }));
+      if (asset && asset.url) {
+        el.appendChild(core.el("img", { src: asset.url, alt: "", draggable: "false" }));
+      } else {
+        /* The file is not here. Say so instead of showing nothing. */
+        el.appendChild(core.el("div", { class: "missing-asset", text: asset ? asset.name : "Missing image" }));
+      }
     } else {
       el.appendChild(core.el("div", { class: "text-body" }));
     }
@@ -169,11 +174,22 @@
     }
 
     if (item.kind === "image") {
+      const asset = S.findAsset(item.assetId);
+      const url = asset ? asset.url : "";
       const img = el.querySelector("img");
-      if (img) {
-        const asset = S.findAsset(item.assetId);
-        const url = asset ? asset.url : "";
-        if (img.getAttribute("src") !== url) img.setAttribute("src", url);
+      const placeholder = el.querySelector(".missing-asset");
+      if (url && !img) {
+        /* The asset turned up after being opened from a project file. */
+        if (placeholder) placeholder.remove();
+        el.insertBefore(core.el("img", { src: url, alt: "", draggable: "false" }), el.firstChild);
+      } else if (!url && img) {
+        img.remove();
+        el.insertBefore(core.el("div", {
+          class: "missing-asset",
+          text: asset ? asset.name : "Missing image",
+        }), el.firstChild);
+      } else if (img && img.getAttribute("src") !== url) {
+        img.setAttribute("src", url);
       }
       return;
     }

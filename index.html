@@ -111,6 +111,11 @@
 
 </div>
 
+<div id="storage-warning" hidden role="alert">
+  <b>Autosave is not available here.</b>
+  <span id="storage-warning-detail"></span>
+</div>
+
 <dialog id="handoff-dialog" aria-labelledby="handoff-title">
   <h2 id="handoff-title">Handoff</h2>
   <p class="muted">Four files, one click each. Browsers block multiple automatic downloads.</p>
@@ -123,6 +128,26 @@
   <div class="handoff-actions">
     <button type="button" id="copy-handoff">Copy handoff brief</button>
     <button type="button" id="close-handoff" class="quiet">Close</button>
+  </div>
+</dialog>
+
+<dialog id="save-dialog" aria-labelledby="save-title">
+  <h2 id="save-title">Save project</h2>
+  <p class="muted">The project file always holds the canvas, the items and the notes. The images can be embedded as well, which makes the file self-contained but much larger.</p>
+  <div class="handoff-actions">
+    <button type="button" id="save-embedded">Save with images</button>
+    <button type="button" id="save-small">Save without images</button>
+    <button type="button" id="close-save" class="quiet">Cancel</button>
+  </div>
+</dialog>
+
+<dialog id="missing-dialog" aria-labelledby="missing-title">
+  <h2 id="missing-title">Missing assets</h2>
+  <p class="muted">This project references files that are not in the tray. The items are kept, so nothing is lost.</p>
+  <ul id="missing-list"></ul>
+  <div class="handoff-actions">
+    <button type="button" id="relink">Relink folder…</button>
+    <button type="button" id="dismiss-missing" class="quiet">Continue without them</button>
   </div>
 </dialog>
 
@@ -139,6 +164,7 @@
 <script src="js/snap.js"></script>
 <script src="js/interact.js"></script>
 <script src="js/inspector.js"></script>
+<script src="js/project.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

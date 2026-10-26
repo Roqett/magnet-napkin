@@ -522,6 +522,36 @@ body.dropping::after {
 .guide.v { top: 0; bottom: 0; width: 1px; }
 .guide.h { left: 0; right: 0; height: 1px; }
 
+/* Missing assets keep their place and say so. */
+.missing-asset {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px;
+  border: 1px dashed #b0453a;
+  border-radius: 3px;
+  background: repeating-linear-gradient(45deg, rgba(176, 69, 58, .08) 0 8px, transparent 8px 16px);
+  color: #8c2f27;
+  font-size: 11px;
+  overflow: hidden;
+}
+
+#storage-warning {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 40;
+  padding: 10px 16px;
+  background: #3a2a08;
+  color: #ffe9a8;
+  border-top: 1px solid #6b5312;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#storage-warning b { color: #fff3b0; }
+
 /* ---------- handoff dialog ---------- */
 
 dialog {

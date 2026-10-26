@@ -22,6 +22,7 @@
     items: [],       // design content. Array order is the z-order, last on top.
     notes: [],       // commentary. Never merged into items.
     selection: null, // { type: "item" | "note", id }
+    projectName: "Magnet Napkin board",
     view: { zoom: 1, grid: true, snap: true, aspect: true, gridSize: 10 },
   };
 

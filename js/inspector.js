@@ -61,6 +61,16 @@
 
     frag.appendChild(section("Canvas"));
 
+    const nameInput = core.el("input", {
+      id: "i-name", type: "text", value: state.projectName || "",
+      "aria-label": "Project name",
+    });
+    nameInput.addEventListener("change", function () {
+      state.projectName = nameInput.value || "Magnet Napkin board";
+      S.commit("rename project");
+    });
+    frag.appendChild(row("Name", nameInput));
+
     frag.appendChild(core.el("p", { class: "summary" }, [
       core.el("b", { text: core.fmtNum(c.width * c.scale, 2) + " × " + core.fmtNum(c.height * c.scale, 2) + " px" }),
       document.createTextNode(" on screen · "),
