@@ -1,4 +1,4 @@
-/* Magnet Napkin — units.
+/* Napkinetic — units.
    The canvas has a unit (px, pt, mm, in) and a scale: how many pixels one
    canvas unit is worth. Geometry is always stored in canvas units, never in
    screen pixels. */

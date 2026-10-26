@@ -1,4 +1,4 @@
-/* Magnet Napkin — boot and wiring.
+/* Napkinetic — boot and wiring.
    Capabilities are flipped on as each slice lands, so a button that does not
    work yet is visibly disabled rather than quietly broken. */
 (function (MN) {

@@ -1,10 +1,10 @@
-# AGENTS.md — Magnet Napkin
+# AGENTS.md — Napkinetic
 
 This is the working brief for any coding agent in this repo. OpenCode reads it; DeepSeek Harness (DSH) also reads `AGENTS.md` at the repo root. Read it before changing code.
 
 ## 0. Read order
 
-1. `01-MAGNET-NAPKIN-HANDOVER.md` — the spec. Read it in full.
+1. `01-NAPKINETIC-HANDOVER.md` — the spec. Read it in full.
 2. `README.md` — the public promise.
 3. `docs/PLAN.md` — the current phase plan, decisions and gates.
 4. This file — working rules, tooling and gates.
@@ -117,7 +117,7 @@ Handovers are numbered and named:
 NN-PROJECT-HANDOVER.md
 ```
 
-The number goes first so the files sort and the console tab identifies the project. This repo's handover is `01-MAGNET-NAPKIN-HANDOVER.md`. A future handover would be `02-MAGNET-NAPKIN-HANDOVER.md`, and so on.
+The number goes first so the files sort and the console tab identifies the project. This repo's handover is `01-NAPKINETIC-HANDOVER.md`. A future handover would be `02-MAGNET-NAPKIN-HANDOVER.md`, and so on.
 
 Do not create a new handover unless asked. Keep the current one current. Use `README.md` / `CHANGELOG.md` for progress.
 

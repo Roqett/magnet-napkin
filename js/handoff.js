@@ -1,4 +1,4 @@
-/* Magnet Napkin — the agent handoff.
+/* Napkinetic — the agent handoff.
    Four files, one click each, all derived from the same project document:
      layout.png           the clean design
      layout-annotated.png the same board with the notes on top
@@ -33,7 +33,7 @@
   function notesMarkdown() {
     const c = state.canvas;
     const lines = [];
-    lines.push("# Handoff — " + (state.projectName || "Magnet Napkin board"));
+    lines.push("# Handoff — " + (state.projectName || "Napkinetic board"));
     lines.push("");
     lines.push("**layout.png is the design. The notes below are commentary and are not part of it.**");
     lines.push("");
@@ -62,7 +62,7 @@
   function handoffBrief() {
     const c = state.canvas;
     const lines = [];
-    lines.push("# " + (state.projectName || "Magnet Napkin board"));
+    lines.push("# " + (state.projectName || "Napkinetic board"));
     lines.push("");
     lines.push("Canvas: " + core.fmtNum(c.width, 2) + " × " + core.fmtNum(c.height, 2) + " " + unitLabel() +
       " (" + core.fmtNum(c.scale, 4) + " px per unit)");

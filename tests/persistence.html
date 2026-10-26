@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Magnet Napkin — persistence test</title>
+<title>Napkinetic — persistence test</title>
 <style>
   body { font: 13px/1.5 ui-monospace, Menlo, monospace; margin: 0; padding: 12px; background: #fff; color: #111; }
   h1 { font-size: 14px; margin: 0 0 8px; }
@@ -13,7 +13,7 @@
 </style>
 </head>
 <body>
-<h1>Magnet Napkin — two-tab persistence test</h1>
+<h1>Napkinetic — two-tab persistence test</h1>
 <div id="out">running…</div>
 <iframe class="frames" id="tabA" src="/index.html"></iframe>
 <iframe class="frames" id="tabB" src="/index.html"></iframe>
@@ -46,7 +46,7 @@ const wait = function (ms) { return new Promise(function (r) { setTimeout(r, ms)
 function readCurrent(frame) {
   const w = frame.contentWindow;
   return new Promise(function (resolve) {
-    const request = w.indexedDB.open("magnet-napkin");
+    const request = w.indexedDB.open("napkinetic");
     request.onsuccess = function () {
       const db = request.result;
       const tx = db.transaction("project", "readonly");
@@ -65,7 +65,7 @@ function readCurrent(frame) {
   const wB = B.contentWindow;
 
   /* A clean store, and both tabs open before anything is saved. */
-  for (const name of ["magnet-napkin", "magnet-napkin-meta"]) {
+  for (const name of ["napkinetic", "napkinetic-meta"]) {
     await new Promise(function (resolve) {
       const request = indexedDB.deleteDatabase(name);
       let done = false;

@@ -49,7 +49,7 @@ browser does not exit before the results are posted.
 | the annotated PNG has the notes | and the point of the badge |
 | the PNG size follows the scale | the export tier maths |
 | `notes.md` says which file is the design | the brief must not mislead |
-| the document format | `magnet-napkin/v1` and the separate arrays |
+| the document format | `napkinetic/v1` and the separate arrays |
 | IndexedDB is available | autosave needs it |
 | no console errors | the gate for every phase |
 

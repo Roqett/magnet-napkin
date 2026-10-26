@@ -1,4 +1,4 @@
-/* Magnet Napkin — core helpers.
+/* Napkinetic — core helpers.
    Classic script on purpose: ES modules are blocked on file://, and this app
    has to open by double-click. Everything hangs off one namespace so nothing
    leaks onto window. */

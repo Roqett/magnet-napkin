@@ -1,4 +1,4 @@
-/* Magnet Napkin — project state, selection and history.
+/* Napkinetic — project state, selection and history.
    The in-memory state is the file format: { canvas, assets, items, notes }.
    There is no translation layer between what the editor holds and what it
    writes, so layout.json is the editor with the view state removed. */
@@ -27,7 +27,7 @@
     items: [],       // design content. Array order is the z-order, last on top.
     notes: [],       // commentary. Never merged into items.
     selection: null, // { type: "item" | "note", id }
-    projectName: "Magnet Napkin board",
+    projectName: "Napkinetic board",
     view: {
       zoom: 1, grid: true, snap: true, aspect: true, gridSize: 10,
       /* When the imported files are @2x artwork, a newly placed asset should
@@ -59,7 +59,7 @@
       try {
         fn(payload);
       } catch (err) {
-        console.error("Magnet Napkin: listener for \"" + event + "\" failed", err);
+        console.error("Napkinetic: listener for \"" + event + "\" failed", err);
       }
     }
   }

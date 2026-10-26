@@ -1,6 +1,6 @@
-# Magnet Napkin — implementation plan
+# Napkinetic — implementation plan
 
-**Status:** plan for review, not started. Spec: [`../01-MAGNET-NAPKIN-HANDOVER.md`](../01-MAGNET-NAPKIN-HANDOVER.md). Rules: [`../AGENTS.md`](../AGENTS.md).
+**Status:** plan for review, not started. Spec: [`../01-NAPKINETIC-HANDOVER.md`](../01-NAPKINETIC-HANDOVER.md). Rules: [`../AGENTS.md`](../AGENTS.md).
 
 ---
 
@@ -64,14 +64,14 @@ The data model carries a per-note `includeInCleanPNG` flag, which implies a note
 
 ### D5 — The in-memory state *is* the file format
 
-One state object, `{ canvas, assets, items, notes }`, shaped exactly like `magnet-napkin/v1`. No translation layer between what the editor holds and what it writes. `layout.json` is that object minus blobs and view state; `.napkin.json` is the same plus optional embedded image data. Undo snapshots are `structuredClone` of `{ canvas, items, notes, selection }` — assets are immutable, so their blobs never enter the history.
+One state object, `{ canvas, assets, items, notes }`, shaped exactly like `napkinetic/v1`. No translation layer between what the editor holds and what it writes. `layout.json` is that object minus blobs and view state; `.napkin.json` is the same plus optional embedded image data. Undo snapshots are `structuredClone` of `{ canvas, items, notes, selection }` — assets are immutable, so their blobs never enter the history.
 
 ---
 
 ## 3. Architecture
 
 ```
-magnet-napkin/
+napkinetic/
   index.html
   styles.css
   js/
@@ -89,7 +89,7 @@ magnet-napkin/
     exporter.js    PNG render (clean/annotated, 1–3×), layout.json, notes.md, clipboard
     app.js         boot, toolbar wiring, empty state
   README.md  LICENSE  AGENTS.md
-  01-MAGNET-NAPKIN-HANDOVER.md
+  01-NAPKINETIC-HANDOVER.md
   docs/
     FORMAT.md  SHORTCUTS.md  AGENT_HANDOFF.md  AGENTS-DSH.md  AGENTS-TEMPLATE.md  PLAN.md
   samples/        original SVG placeholders so a new user can try it in 10 seconds

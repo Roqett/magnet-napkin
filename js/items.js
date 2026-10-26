@@ -1,4 +1,4 @@
-/* Magnet Napkin — items and notes on the canvas.
+/* Napkinetic — items and notes on the canvas.
    Both are positioned DOM elements with the same handles. Items are design
    content and live in the items layer; notes are commentary and live in the
    notes layer, above everything. They are never merged. */

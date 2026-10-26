@@ -138,7 +138,7 @@ Handovers are numbered and project-named:
 NN-PROJECT-HANDOVER.md
 ```
 
-Number first so the files sort and the console tab identifies the project. Examples: `01-MAGNET-NAPKIN-HANDOVER.md`, `02-<PROJECT>-HANDOVER.md`.
+Number first so the files sort and the console tab identifies the project. Examples: `01-NAPKINETIC-HANDOVER.md`, `02-<PROJECT>-HANDOVER.md`.
 
 Do not create a new handover unless asked. Keep the current one current; use `README.md` / `CHANGELOG.md` for progress.
 

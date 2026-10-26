@@ -1,12 +1,12 @@
-# 01 — Magnet Napkin — handover
+# 01 — Napkinetic — handover
 
 **Handover:** 01 · 2026-10-26  
-**Working title:** Magnet Napkin  
-**Repo:** `magnet-napkin`  
+**Working title:** Napkinetic  
+**Repo:** `napkinetic`  
 **One line:** Drop a folder of images onto a canvas of a known size, move them around like magnets, leave notes that are clearly notes, and export the layout plus a brief for a vision agent.
 
 > **Naming convention.** Project handovers are numbered and named  
-> `NN-PROJECT-HANDOVER.md` — e.g. `01-MAGNET-NAPKIN-HANDOVER.md`,  
+> `NN-PROJECT-HANDOVER.md` — e.g. `01-NAPKINETIC-HANDOVER.md`,  
 > `02-SOMETHING-HANDOVER.md`. The number goes first so the files sort and  
 > the console tab says which handover it is.
 
@@ -18,7 +18,7 @@ This is a napkin sketch that knows its pixels: loose enough to rearrange, exact 
 
 Every design task eventually reaches the same moment: you have a folder of assets and you need to see them together at the right proportions before writing any code. Figma is heavier than the job, a whiteboard does not know what 214 pt means, and moving files around in Finder tells you nothing.
 
-Magnet Napkin is the smallest useful tool for that moment:
+Napkinetic is the smallest useful tool for that moment:
 
 - drop an asset folder in;
 - set the canvas to the real size;
@@ -138,7 +138,7 @@ Ship this and stop:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ Magnet Napkin  Canvas 214 × 719 pt  2×   Undo Redo          │
+│ Napkinetic  Canvas 214 × 719 pt  2×   Undo Redo          │
 │ Import  Save  Open  + Text  + Note  Export PNG  JSON  Handoff│
 ├───────────────┬──────────────────────────────┬───────────────┤
 │ ASSETS        │                              │ INSPECTOR     │
@@ -170,7 +170,7 @@ Store geometry in **canvas units**, not screen pixels. Render at `scale` (e.g. 2
 
 ```json
 {
-  "format": "magnet-napkin/v1",
+  "format": "napkinetic/v1",
   "name": "GT40 panel",
   "canvas": {
     "width": 214,
@@ -382,14 +382,14 @@ Why wait: an MCP adds a process, configuration and a security surface, while a `
 ## 8. Suggested repo layout
 
 ```
-magnet-napkin/
+napkinetic/
   index.html
   styles.css
   app.js                 # classic script; no modules required
   README.md
   AGENTS.md              # working rules, MCPs/skills, gates
   LICENSE                # MIT
-  01-MAGNET-NAPKIN-HANDOVER.md   # this file
+  01-NAPKINETIC-HANDOVER.md   # this file
   docs/
     FORMAT.md            # .napkin.json
     SHORTCUTS.md
@@ -433,7 +433,7 @@ The MVP is done when all of these are true:
 
 Use this as the kickoff, and keep the scope narrow:
 
-> Build **Magnet Napkin** from `01-MAGNET-NAPKIN-HANDOVER.md`. Read the whole handover first, then `AGENTS.md`. Build the MVP only: folder import, canvas size/units, drag/resize/rotate, inspector, z-order/lock/opacity, keyboard nudge, undo/redo, snapping/guides, **basic text boxes**, **notes that are separate from the design**, IndexedDB autosave, clean and annotated PNG export, JSON project import/export, and the **notes.md handoff**. Vanilla HTML/CSS/JS, no framework, no build step, no backend, no accounts, no cloud. One static page that opens from disk and on GitHub Pages. Stop at the Definition of Done and report what is done and what is deliberately deferred. Do not build an MCP in this session. Do not add stretch features.
+> Build **Napkinetic** from `01-NAPKINETIC-HANDOVER.md`. Read the whole handover first, then `AGENTS.md`. Build the MVP only: folder import, canvas size/units, drag/resize/rotate, inspector, z-order/lock/opacity, keyboard nudge, undo/redo, snapping/guides, **basic text boxes**, **notes that are separate from the design**, IndexedDB autosave, clean and annotated PNG export, JSON project import/export, and the **notes.md handoff**. Vanilla HTML/CSS/JS, no framework, no build step, no backend, no accounts, no cloud. One static page that opens from disk and on GitHub Pages. Stop at the Definition of Done and report what is done and what is deliberately deferred. Do not build an MCP in this session. Do not add stretch features.
 
 A useful first response from the new session: restate the MVP and the Definition of Done in its own words, list the files it will create, then build in that order.
 
@@ -441,7 +441,7 @@ A useful first response from the new session: restate the MVP and the Definition
 
 ## 11. Naming and branding
 
-**Magnet Napkin** is a good working name: it says quick, movable, low-stakes, and it is memorable. The repo slug `magnet-napkin` is clean.
+**Napkinetic** is a good working name: it says quick, movable, low-stakes, and it is memorable. The repo slug `napkinetic` is clean.
 
 - Tagline options: “A napkin for your assets.” · “Drag your assets like magnets.” · “Rough it out. Nail the proportions.” · “A layout napkin your agent can read.”
 - Icon idea: a folded paper corner with a small horseshoe magnet, one colour, simple SVG.

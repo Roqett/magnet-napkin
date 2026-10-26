@@ -1,4 +1,4 @@
-/* Magnet Napkin — snapping.
+/* Napkinetic — snapping.
    Snaps to the grid, to the canvas edges and centre, and to the edges and
    centres of everything else on the board. When something snaps, a thin
    guide line is drawn so the snap is visible rather than mysterious.

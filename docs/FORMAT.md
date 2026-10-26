@@ -4,7 +4,7 @@ A project file is a normal JSON file. It holds the canvas, the assets it refers 
 
 ```json
 {
-  "format": "magnet-napkin/v1",
+  "format": "napkinetic/v1",
   "name": "GT40 panel",
   "canvas": {
     "width": 214,
@@ -78,7 +78,7 @@ A project file is a normal JSON file. It holds the canvas, the assets it refers 
 
 ## The rules
 
-**The format string.** `format` must be `magnet-napkin/v1`. A file with any other value is refused with a clear message rather than half-loaded.
+**The format string.** `format` must be `napkinetic/v1`. A file with any other value is refused with a clear message rather than half-loaded.
 
 **Geometry is in canvas units.** Never in screen pixels. `x`, `y`, `w` and `h` are in the unit named by `canvas.unit`, so a reader never has to guess the resolution.
 

@@ -4,7 +4,7 @@ This note exists because a real board was lost.
 
 On 26 October 2026 the Redline PanelBoard — the prototype this app replaces — lost a 34-magnet layout. Three tabs were open. All three shared one `localStorage` key. Each tab autosaved its own in-memory board over the same key. An empty tab saved last. The populated board was gone, and there was no history to restore.
 
-Magnet Napkin is already better than that prototype: it autosaves the project and its image blobs to IndexedDB. But it uses a single `CURRENT` key, and that is the same failure waiting to happen. This note is the requirement to close it.
+Napkinetic is already better than that prototype: it autosaves the project and its image blobs to IndexedDB. But it uses a single `CURRENT` key, and that is the same failure waiting to happen. This note is the requirement to close it.
 
 ## What the current code does
 
@@ -41,7 +41,7 @@ Add a `history` object store:
 ### 3. Guard against the second tab
 
 - Give each tab a random `tabId`.
-- Use `BroadcastChannel("magnet-napkin")` where available, with a `storage`/`visibilitychange` fallback.
+- Use `BroadcastChannel("napkinetic")` where available, with a `storage`/`visibilitychange` fallback.
 - On every successful save, broadcast `{type:"saved", tabId, at, itemCount}`.
 - A tab that receives another tab's save must show a notice: “This board was updated in another tab.” Offer **Reload**; do not silently overwrite.
 - A tab that has not been edited must not write a layout. Only a user edit or an explicit New/Open should write items.

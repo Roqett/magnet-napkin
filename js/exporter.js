@@ -1,4 +1,4 @@
-/* Magnet Napkin — export.
+/* Napkinetic — export.
    The PNG is drawn from the same item data the editor shows, never from a
    screenshot. Text is drawn from the same measured lines the editor draws,
    so the two cannot disagree.

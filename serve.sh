@@ -1,5 +1,5 @@
 #!/bin/sh
-# Serve Magnet Napkin locally.
+# Serve Napkinetic locally.
 #
 # The page works when opened straight from disk, but Chrome blocks IndexedDB
 # on file:// URLs, so autosave needs a real origin. This script gives you one.
@@ -15,7 +15,7 @@ if ! command -v python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Magnet Napkin → http://localhost:$PORT/"
+echo "Napkinetic → http://localhost:$PORT/"
 echo "Ctrl-C to stop."
 
 exec python3 -m http.server "$PORT" --bind 127.0.0.1

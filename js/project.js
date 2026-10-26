@@ -1,4 +1,4 @@
-/* Magnet Napkin — projects and persistence.
+/* Napkinetic — projects and persistence.
    The board is the work, so the store has to survive more than one tab.
 
    The rules this file exists to keep:
@@ -22,9 +22,9 @@
   const S = MN.state;
   const state = S.state;
 
-  const FORMAT = "magnet-napkin/v1";
-  const DB_MAIN = "magnet-napkin";
-  const DB_META = "magnet-napkin-meta";
+  const FORMAT = "napkinetic/v1";
+  const DB_MAIN = "napkinetic";
+  const DB_META = "napkinetic-meta";
   const STORE_PROJECT = "project";
   const STORE_HISTORY = "history";
   const STORE_VIEW = "view";
@@ -34,7 +34,7 @@
   const HISTORY_LIMIT = 50;
   const HISTORY_BYTES = 8 * 1024 * 1024;
   const ROLLING_INTERVAL = 60000;
-  const CHANNEL = "magnet-napkin";
+  const CHANNEL = "napkinetic";
 
   /* Every tab gets an identity, so a message from another tab is never
      mistaken for our own. */
@@ -193,7 +193,7 @@
     delete canvas.underlay;
     return {
       format: FORMAT,
-      name: state.projectName || "Magnet Napkin board",
+      name: state.projectName || "Napkinetic board",
       canvas: canvas,
       assets: state.assets.map(function (asset) {
         return {
@@ -647,7 +647,7 @@
 
   async function loadDocument(doc, options) {
     const opts = options || {};
-    if (!doc || typeof doc !== "object") throw new Error("That file is not a Magnet Napkin project.");
+    if (!doc || typeof doc !== "object") throw new Error("That file is not a Napkinetic project.");
     if (doc.format !== FORMAT) {
       throw new Error("Unknown format: " + (doc.format || "none") + ". Expected " + FORMAT + ".");
     }
@@ -697,7 +697,7 @@
     state.canvas = normaliseCanvas(doc.canvas);
     state.items = (doc.items || []).map(normaliseItem).filter(Boolean);
     state.notes = (doc.notes || []).map(normaliseNote).filter(Boolean);
-    state.projectName = typeof doc.name === "string" ? doc.name : "Magnet Napkin board";
+    state.projectName = typeof doc.name === "string" ? doc.name : "Napkinetic board";
     state.selection = null;
     if (doc.view) applyViewState(doc.view);
 

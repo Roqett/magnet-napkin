@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Napkinetic — frame %N%</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #090b10; overflow: hidden; }
+  iframe { display: block; width: 1200px; height: 750px; border: 0; }
+</style>
+</head>
+<body>
+<img src="/__hold?seconds=10" alt="" style="position:absolute;left:-99999px">
+<iframe id="app" style="display:none"></iframe>
+<script>
+/* Builds one frame of the README animation.
+
+   Open it with ?step=N and screenshot the page: each step is a moment in a
+   real workflow — the tray filling, the artwork going down, a note landing,
+   an item selected so the inspector shows its numbers.
+
+     python3 tests/serve.py
+     for n in $(seq 0 11); do
+       chrome --headless --screenshot=frame-$n.png \
+         "http://127.0.0.1:8124/tests/frames.html?step=$n"
+     done
+*/
+const step = Math.max(0, Math.min(11, Number(new URLSearchParams(location.search).get("step") || 0)));
+const frame = document.getElementById("app");
+
+const SHAPES = [
+  ["samples/shapes/circle.svg", "circle.svg"],
+  ["samples/shapes/square.svg", "square.svg"],
+  ["samples/shapes/triangle.svg", "triangle.svg"],
+  ["samples/shapes/arrow.svg", "arrow.svg"],
+  ["samples/panels/wide.svg", "wide.svg"],
+  ["samples/panels/grid.svg", "grid.svg"],
+  ["samples/photos/gradient.svg", "gradient.svg"],
+];
+
+const cleared = indexedDB.deleteDatabase("napkinetic");
+cleared.onsuccess = cleared.onerror = cleared.onblocked = function () {
+  frame.src = "/index.html";
+};
+
+frame.addEventListener("load", async function () {
+  const w = frame.contentWindow;
+  await new Promise(function (r) { setTimeout(r, 1200); });
+  const S = w.MN.state;
+  const state = S.state;
+
+  state.projectName = "Demo board";
+  state.canvas.width = 640;
+  state.canvas.height = 460;
+  state.canvas.unit = "px";
+  state.canvas.scale = 1;
+  state.canvas.background = { type: "color", value: "#12141a" };
+  state.view.zoom = 0.52;
+  state.view.grid = true;
+
+  /* The tray fills first. */
+  const entries = [];
+  for (const pair of SHAPES) {
+    const blob = await (await fetch("/" + pair[0])).blob();
+    entries.push({ file: new File([blob], pair[1], { type: "image/svg+xml" }), path: pair[0] });
+  }
+  await w.MN.assets.importEntries(entries);
+
+  const byName = function (name) { return state.assets.find(function (a) { return a.name === name; }); };
+  const put = function (name, x, y, width, height) {
+    const it = S.newImageItem(byName(name), 0, 0);
+    it.x = x; it.y = y; it.w = width; it.h = height;
+    state.items.push(it);
+    return it;
+  };
+
+  /* Then the artwork goes down, piece by piece. */
+  const placed = [];
+  placed.push(put("circle.svg", 40, 60, 150, 150));
+  placed.push(put("square.svg", 40, 250, 150, 150));
+  placed.push(put("triangle.svg", 230, 60, 140, 140));
+  placed.push(put("arrow.svg", 230, 240, 200, 66));
+  placed.push(put("wide.svg", 430, 60, 170, 64));
+  placed.push(put("grid.svg", 430, 250, 170, 170));
+
+  const label = S.newTextItem("PANEL LAYOUT");
+  label.x = 40; label.y = 20; label.w = 300;
+  label.fontFamily = "Arial Narrow"; label.fontSize = 22; label.fontWeight = 700; label.color = "#ededed";
+  state.items.push(label);
+  w.MN.items.syncTextHeight(label);
+
+  const note = w.MN.interact.placeNote("This dial is the main tach. Keep 24 pt clearance above the label.");
+  note.x = 210; note.y = 330; note.w = 190; note.fontSize = 10;
+  w.MN.items.syncTextHeight(note);
+
+  /* Each step shows only as much as has happened by then. */
+  const order = [
+    { items: 0, notes: 0, select: false },   // the empty board
+    { items: 1, notes: 0, select: false },   // the first gauge
+    { items: 2, notes: 0, select: false },
+    { items: 3, notes: 0, select: false },
+    { items: 4, notes: 0, select: false },
+    { items: 5, notes: 0, select: false },
+    { items: 6, notes: 0, select: false },   // all the artwork
+    { items: 7, notes: 0, select: false },   // and the label
+    { items: 7, notes: 1, select: false },   // and a note
+    { items: 7, notes: 1, select: true },   // select the gauge
+    { items: 7, notes: 1, select: false },
+    { items: 7, notes: 1, select: true }
+  ];
+  const shot = order[step];
+
+  state.items.length = shot.items;
+  state.notes.length = shot.notes;
+  S.commit("frame");
+  if (shot.select && state.items.length) {
+    S.select("item", state.items[0].id);
+  } else {
+    S.deselect();
+  }
+  w.MN.stage.applyView();
+  const viewport = frame.contentDocument.querySelector("#viewport");
+  viewport.scrollLeft = 0;
+  viewport.scrollTop = 0;
+  frame.style.display = "block";
+  document.title = "READY " + step;
+});
+</script>
+</body>
+</html>

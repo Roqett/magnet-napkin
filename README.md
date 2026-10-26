@@ -1,14 +1,19 @@
-# Magnet Napkin
+# Napkinetic
 
 **A napkin for your assets.** Drop a folder of images onto a canvas of a known size, move them around like magnets, leave notes that are clearly *not* part of the design, and export the layout plus a brief for a vision agent.
 
 No accounts. No cloud. No install. No build step. No network calls after the page loads.
 
-![Magnet Napkin with a board, a tray of assets and a sticky note](docs/demo/screenshot.png)
+![Napkinetic: a board with assets from the tray, a label and a sticky note](docs/demo/napkinetic.gif)
+
+*A board being laid out: the tray fills, the artwork goes down, a note lands, and
+the inspector shows the numbers.*
+
+[![A clip of the Redline prototype this replaced](docs/demo/redline-prototype-demo.mp4)](docs/demo/redline-prototype-demo.mp4)
 
 ## The idea
 
-Every layout starts as a pile of assets and a rough arrangement. Magnet Napkin is the smallest tool for that moment:
+Every layout starts as a pile of assets and a rough arrangement. Napkinetic is the smallest tool for that moment:
 
 - **drop a folder of images in** — drag it onto the page, or use the button;
 - **set the canvas to the real size** — 214 × 719 pt, or millimetres, or inches;
@@ -75,7 +80,7 @@ They are never merged. The JSON keeps them apart, and so does the export.
 
 ## Your board is safe
 
-The board is the work, so losing it is not an option. Magnet Napkin keeps it
+The board is the work, so losing it is not an option. Napkinetic keeps it
 in the browser's own storage and is careful about it:
 
 - **Every change is snapshotted.** The **History** button lists the versions
@@ -113,4 +118,4 @@ The first board this tool was built for was the RED-LINE GT40 cockpit at 214 × 
 A [clip of the prototype this replaced](docs/demo/redline-prototype-demo.mp4)
 is in `docs/demo/` — the old Redline PanelBoard, doing the same job with
 hardcoded artwork. It is a record of where this came from, not a demo of this
-app.
+app. The `.mov` original is alongside it.

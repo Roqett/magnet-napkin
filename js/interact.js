@@ -1,4 +1,4 @@
-/* Magnet Napkin — direct manipulation.
+/* Napkinetic — direct manipulation.
    Pointer events, not mouse events. The item's own box is the pointer capture
    target, so a fast drag never outruns the element. */
 (function (MN) {
@@ -9,7 +9,7 @@
   const state = S.state;
 
   const MIN_SIZE = 1;
-  const ASSET_MIME = "application/x-magnet-napkin-asset";
+  const ASSET_MIME = "application/x-napkinetic-asset";
 
   let drag = null;
 

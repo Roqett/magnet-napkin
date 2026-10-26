@@ -1,4 +1,4 @@
-/* Magnet Napkin — the stage.
+/* Napkinetic — the stage.
    Owns the board's on-screen size, the rulers, the grid, the background and
    the view transform. Everything here is in screen pixels; the geometry in
    state is always in canvas units. */

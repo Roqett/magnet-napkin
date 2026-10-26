@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Magnet Napkin — smoke test</title>
+<title>Napkinetic — smoke test</title>
 <style>
   body { font: 13px/1.5 ui-monospace, Menlo, monospace; margin: 0; padding: 12px; background: #fff; color: #111; }
   h1 { font-size: 14px; margin: 0 0 8px; }
@@ -13,7 +13,7 @@
 </style>
 </head>
 <body>
-<h1>Magnet Napkin — smoke test</h1>
+<h1>Napkinetic — smoke test</h1>
 <div id="out">running…</div>
 <img id="hold" src="/__hold?seconds=12" alt="" style="position:absolute;left:-9999px">
 <iframe id="frame" src="/index.html"></iframe>
@@ -162,7 +162,7 @@ frame.addEventListener("load", async function () {
     /* an asset dragged out of the tray is not an import */
     w.document.body.classList.remove("dropping");
     const internal = new DataTransfer();
-    internal.setData("application/x-magnet-napkin-asset", "x");
+    internal.setData("application/x-napkinetic-asset", "x");
     w.document.dispatchEvent(new w.DragEvent("dragenter", { dataTransfer: internal, bubbles: true, cancelable: true }));
     log("dragging an asset out of the tray does not flash the import overlay",
       !w.document.body.classList.contains("dropping"));
@@ -213,7 +213,7 @@ frame.addEventListener("load", async function () {
 
     /* the document format */
     const doc = MN.project.documentOf();
-    log("document format", doc.format === "magnet-napkin/v1" && doc.items.length === state.items.length);
+    log("document format", doc.format === "napkinetic/v1" && doc.items.length === state.items.length);
     log("notes are a separate array", Array.isArray(doc.notes) && doc.notes.length === 1 &&
       doc.items.every(function (i) { return i.kind !== "note"; }));
 
@@ -221,7 +221,7 @@ frame.addEventListener("load", async function () {
     let idb = false;
     try {
       await new Promise(function (resolve, reject) {
-        const request = w.indexedDB.open("magnet-napkin-test", 1);
+        const request = w.indexedDB.open("napkinetic-test", 1);
         request.onsuccess = function () { resolve(); };
         request.onerror = function () { reject(request.error); };
       });

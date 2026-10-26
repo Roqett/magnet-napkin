@@ -1,4 +1,4 @@
-/* Magnet Napkin — the inspector.
+/* Napkinetic — the inspector.
    The precision half of the tool: exact numbers, in canvas units, for the
    canvas and for whatever is selected. */
 (function (MN) {
@@ -66,7 +66,7 @@
       "aria-label": "Project name",
     });
     nameInput.addEventListener("change", function () {
-      state.projectName = nameInput.value || "Magnet Napkin board";
+      state.projectName = nameInput.value || "Napkinetic board";
       S.commit("rename project");
     });
     frag.appendChild(row("Name", nameInput));

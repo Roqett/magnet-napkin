@@ -1,4 +1,4 @@
-/* Magnet Napkin — text layout.
+/* Napkinetic — text layout.
    One measurement, two consumers: the editor draws the lines this returns,
    and the PNG exporter draws the same lines. Neither side re-wraps, so the
    exported text cannot disagree with the screen.

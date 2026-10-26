@@ -119,6 +119,6 @@ If the DSH profile cannot run a browser, the fallback is the same page opened ma
 ## 7. See also
 
 - [`AGENTS.md`](../AGENTS.md) — the project rules and the OpenCode tool map.
-- [`01-MAGNET-NAPKIN-HANDOVER.md`](../01-MAGNET-NAPKIN-HANDOVER.md) — the spec.
+- [`01-NAPKINETIC-HANDOVER.md`](../01-NAPKINETIC-HANDOVER.md) — the spec.
 - ECC `deepseek-harness-setup` skill — the canonical install/update guide.
 - ECC `docs/DEEPSEEK-HARNESS-GUIDE.md` — the long-form guide, if the checkout ships it.

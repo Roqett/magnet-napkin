@@ -1,4 +1,4 @@
-/* Magnet Napkin — assets.
+/* Napkinetic — assets.
    Folder import in four layers, because no browser supports all of them:
      1. webkitGetAsEntry   — Chrome, Safari
      2. getAsFileSystemHandle — Firefox
