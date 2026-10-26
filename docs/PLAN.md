@@ -326,6 +326,19 @@ was proved and what is still open.
 
 **The undo off-by-one.** The history kept the current state as its last entry, so the first undo did nothing and the initial state could never be reached. Found by a test that undid everything and checked the board was empty.
 
+### The look
+
+The interface is dark by default — the owner asked for it, and the Redline
+prototype they work in is dark too. The chrome is glass: the toolbar, the
+asset tray and the inspector are translucent panels floating over a soft
+wallpaper, blurred with `backdrop-filter`, with a hairline and a specular
+edge along the top. The board is the only opaque thing on screen, so nothing
+in the interface competes with the artwork.
+
+The light palette is still in the stylesheet under `[data-theme="light"]`, one
+attribute away from being used. `prefers-reduced-transparency` turns the
+glass off and leaves plain panels.
+
 ### What is verified, and how
 
 | Claim | Evidence |
@@ -338,6 +351,15 @@ was proved and what is still open.
 | missing assets are reported, not dropped | a project with an unknown asset opens with the item kept, a placeholder shown and a relink dialog listing it |
 | the app works in more than one browser | the same suite passes in Chrome 152 and Firefox 156 (`tests/`) |
 | the app is accessible | Lighthouse: accessibility 1.0, best practices 1.0, SEO 1.0 |
+
+One Lighthouse warning remains, and it is deliberate. `label-content-name-mismatch`
+complains that the visible text of a text box or a note is not literally inside
+its accessible name. The visible text is broken across lines by the shared
+layout, and the accessible name is the sentence as it was written. Removing the
+warning means putting the whole text in one element and letting the browser
+wrap it — which gives up the guarantee that the screen and the exported PNG
+break the lines in the same places. The score is 1.0 either way; the export
+parity is the promise worth keeping.
 | nothing leaves the machine | the network log after load holds only local files and `blob:` URLs |
 | no Redline material is in the repo | `git ls-files`: the only Redline file is `docs/demo/redline-gt40.jpg`, the permitted capture. 43 files, 620 KB in total |
 
