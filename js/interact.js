@@ -197,7 +197,6 @@
   function onKeyDown(e) {
     const tag = (e.target && e.target.tagName || "").toLowerCase();
     if (tag === "input" || tag === "textarea" || tag === "select") return;
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
 
     if (!state.selection) return;
     const obj = findObject(state.selection.id);
@@ -214,6 +213,17 @@
       S.commit("delete");
       return;
     }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
+      e.preventDefault();
+      const result = S.duplicateObject(obj.id);
+      if (result) {
+        S.commit("duplicate");
+        S.select(result.type, result.copy.id);
+      }
+      return;
+    }
+    /* Any other shortcut belongs to the browser. */
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
     if (obj.locked) return;
 
     const step = e.shiftKey ? 10 : 1;
