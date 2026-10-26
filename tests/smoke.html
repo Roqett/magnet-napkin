@@ -145,6 +145,29 @@ frame.addEventListener("load", async function () {
     log("a press selects the item", pressed.selected === item.id, String(pressed.selected));
     log("a press moves the item", pressed.moved === true);
 
+    /* Dropping a file on the asset tray must import it, and must stop the
+       browser from navigating to the image instead. */
+    const dropBlob = new Blob(["<svg xmlns='http://www.w3.org/2000/svg'/>"], { type: "image/svg+xml" });
+    const dt = new DataTransfer();
+    dt.items.add(new File([dropBlob], "dropped.svg", { type: "image/svg+xml" }));
+    const tray = w.document.querySelector("#tray-scroll");
+    const dropEvent = new w.DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true });
+    tray.dispatchEvent(dropEvent);
+    await new Promise(function (r) { setTimeout(r, 400); });
+    log("a file dropped on the tray is imported",
+      state.assets.some(function (a) { return a.name === "dropped.svg"; }));
+    log("the drop is prevented, so the browser does not open the image",
+      dropEvent.defaultPrevented === true);
+
+    /* an asset dragged out of the tray is not an import */
+    w.document.body.classList.remove("dropping");
+    const internal = new DataTransfer();
+    internal.setData("application/x-magnet-napkin-asset", "x");
+    w.document.dispatchEvent(new w.DragEvent("dragenter", { dataTransfer: internal, bubbles: true, cancelable: true }));
+    log("dragging an asset out of the tray does not flash the import overlay",
+      !w.document.body.classList.contains("dropping"));
+    w.document.body.classList.remove("dropping");
+
     /* undo and redo */
     const before = state.items.length;
     const historyBefore = S.history.past.length;

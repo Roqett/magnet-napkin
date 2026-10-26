@@ -308,15 +308,28 @@
     if (!app) return;
     let depth = 0;
 
+    /* Only a drag that carries files gets the "drop to import" overlay.
+       Dragging an asset out of the tray is not an import, and saying so
+       while it happens is just noise. */
+    function carriesFiles(transfer) {
+      if (!transfer || !transfer.types) return false;
+      const types = Array.prototype.slice.call(transfer.types);
+      return types.indexOf("Files") >= 0;
+    }
+
     document.addEventListener("dragenter", function (e) {
       if (!e.dataTransfer) return;
+      if (!carriesFiles(e.dataTransfer)) return;
       e.preventDefault();
       depth += 1;
       document.body.classList.add("dropping");
     });
     document.addEventListener("dragover", function (e) {
       if (!e.dataTransfer) return;
+      /* The default has to be prevented either way, or the browser opens
+         the dropped file instead of importing it. */
       e.preventDefault();
+      if (!carriesFiles(e.dataTransfer)) return;
       e.dataTransfer.dropEffect = "copy";
     });
     document.addEventListener("dragleave", function (e) {
