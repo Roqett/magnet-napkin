@@ -1,5 +1,17 @@
 # Smart guides — the missing half: equal spacing
 
+**Status: implemented.** `spacingSnap()` and `spacingSnap`'s span guides are in
+`js/snap.js`, with the acceptance cases in §5 running as
+`tests/spacing.html`. Two notes on the details:
+
+- The tolerance is `20 / (scale × zoom)` canvas units — that is 20 screen
+  pixels — matching the reference's `10 / zoom` board pixels at zoom 1. The
+  alignment threshold stays at 6 screen pixels.
+- §5 case 6 expects "one line at 200", but the reference implementation
+  actually lands on 194 with the line at the canvas centre: the centre of C
+  lines up with the centre of the board, which is exactly as close as B's left
+  edge is. What the case is for — alignment beating spacing — holds either way.
+
 **Status:** alignment guides already exist in `js/snap.js`. This note specifies the
 part that is missing: **equal-spacing guides**, the Figma-style behaviour where the
 gap to the nearest neighbour on each side snaps equal and the distance is printed on

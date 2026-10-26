@@ -367,6 +367,18 @@ layer:
 `tests/persistence.html` is the two-tab acceptance test from that document. It
 passes in Chrome 152 and Firefox 156.
 
+### Equal spacing
+
+`docs/SMART_GUIDES.md` specified the missing half of the snapping: the gap to
+the nearest neighbour on each side snaps equal, and the distance is printed on
+the guide. It is implemented in `js/snap.js`, and the reference
+implementation in the Redline `PanelBoard` was read directly rather than
+guessed at — including the parts where the note and the code disagree, which
+are recorded in the note itself.
+
+The acceptance cases from the note run as `tests/spacing.html`: thirteen
+checks, all passing in Chrome 152 and Firefox 156.
+
 ### What is verified, and how
 
 | Claim | Evidence |

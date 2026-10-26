@@ -162,8 +162,7 @@
       item.x = snapped.x;
       item.y = snapped.y;
       drag.guides = snapped.guides;
-    } else if (drag.mode === "resize") {
-      if (item.kind !== "image" && item.autoHeight) {
+    } else if (drag.mode === "resize") {      if (item.kind !== "image" && item.autoHeight) {
         /* A text box resizes by its wrap width; the height follows the text. */
         item.w = Math.max(MIN_SIZE, drag.w0 + lx);
         MN.items.syncTextHeight(item);
@@ -195,7 +194,9 @@
     clampItem(item);
     MN.items.updateItem(item);
     MN.inspector.updateValues();
-    MN.snap.renderGuides(drag.guides);
+    /* The spans are drawn from the item's final position, so the label and
+       the thing it measures agree. */
+    MN.snap.renderGuides(drag.guides, item);
   }
 
   function onUp() {

@@ -15,7 +15,7 @@
   --accent: #6f9bff;
   --accent-ink: #08101f;
   --canvas: #eef0f3;
-  --guide: #ff4d4d;
+  --guide: #e7b04b;
   --note: #fff3b0;
   --note-ink: #1c1c1c;
   --note-border: #b08900;
@@ -629,9 +629,28 @@ body.dropping::after {
 .magnet.note .badge::before { content: "NOTE"; }
 
 /* Snapping guides */
-.guide { position: absolute; background: var(--guide); opacity: .85; }
+.guide { position: absolute; background: var(--guide); opacity: .9; }
 .guide.v { top: 0; bottom: 0; width: 1px; }
 .guide.h { left: 0; right: 0; height: 1px; }
+.guide-span {
+  position: absolute;
+  background: var(--guide);
+  opacity: .9;
+  box-shadow: 0 0 4px rgba(0, 0, 0, .65);
+}
+.guide-chip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: #0b0c0f;
+  color: var(--guide);
+  border: 1px solid rgba(231, 176, 75, .35);
+  border-radius: 3px;
+  padding: 0 4px;
+  font: 9px/13px var(--mono);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
 
 /* Missing assets keep their place and say so. */
 .missing-asset {

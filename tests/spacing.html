@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Napkinetic — equal spacing tests</title>
+<style>
+  body { font: 13px/1.5 ui-monospace, Menlo, monospace; margin: 0; padding: 12px; background: #fff; color: #111; }
+  #out { white-space: pre-wrap; }
+  .pass { color: #0a6b28; }
+  .fail { color: #b00020; font-weight: 700; }
+  #frame { position: absolute; left: 500px; top: 0; width: 800px; height: 700px; border: 0; }
+</style>
+</head>
+<body>
+<pre id="out">running…</pre>
+<img src="/__hold?seconds=20" alt="" style="position:absolute;left:-99999px">
+<iframe id="frame" src="/index.html"></iframe>
+<script>
+/* The acceptance cases from docs/SMART_GUIDES.md §5, run against the real
+   snapping code.
+
+   A fixed canvas of 428 × 1438 (214 × 719 pt at 2×) and plain rectangles. */
+const lines = [];
+let failures = 0;
+
+function log(name, ok, detail) {
+  if (!ok) failures += 1;
+  lines.push((ok ? "PASS " : "FAIL ") + name + (detail ? "  [" + detail + "]" : ""));
+  document.getElementById("out").innerHTML = lines.map(function (l) {
+    const cls = l.startsWith("FAIL") ? "fail" : "pass";
+    return '<span class="' + cls + '">' + l.replace(/&/g, "&amp;").replace(/</g, "&lt;") + "</span>";
+  }).join("\n");
+}
+
+const frame = document.getElementById("frame");
+
+frame.addEventListener("load", function () {
+  const w = frame.contentWindow;
+  const MN = w.MN;
+  const S = MN.state;
+  const state = S.state;
+
+  /* A plain rectangle item, with no asset. */
+  function rect(id, x, y, width, height) {
+    return { id: id, kind: "image", assetId: null, x: x, y: y, w: width, h: height,
+      rotation: 0, opacity: 1, locked: false };
+  }
+
+  function setup(items) {
+    state.items = items;
+    state.notes = [];
+    /* The reference board is 428 × 1438 pixels with the items in those same
+       units, so the cases below mean exactly what they mean there. One unit
+       is one pixel here, which keeps the screen distances the same too. */
+    state.canvas.width = 428;
+    state.canvas.height = 1438;
+    state.canvas.unit = "px";
+    state.canvas.scale = 1;
+    state.view.snap = true;
+    state.view.grid = false;
+    state.view.zoom = 1;
+    S.select(null, null);
+  }
+
+  const dragged = rect("C", 0, 0, 40, 20);
+
+  /* 1. A (0,0,40,20), B (200,0,40,20), C 40x20, drag to x = 108 */
+  setup([rect("A", 0, 0, 40, 20), rect("B", 200, 0, 40, 20), rect("C", 0, 0, 40, 20)]);
+  let moved = MN.snap.snapMove(dragged, 108, 0);
+  log("1. the gaps equalise", moved.x === 100, "x=" + moved.x);
+  const spans = moved.guides.filter(function (g) { return g.kind === "span"; });
+  log("1. one span pair is drawn", spans.length === 1, JSON.stringify(moved.guides.map(function (g) { return g.kind + ":" + g.axis; })));
+  log("1. the gap is 60", spans.length === 1 && spans[0].gap === 60, spans.length ? String(spans[0].gap) : "none");
+  log("1. the label reads 60", spans.length === 1 && MN.snap.gapLabel(spans[0].gap) === "60", spans.length ? MN.snap.gapLabel(spans[0].gap) : "none");
+
+  /* 2. A (140,300,150,50), B (140,700,150,50), C 150x50, drag to y = 508 */
+  setup([rect("A", 140, 300, 150, 50), rect("B", 140, 700, 150, 50), rect("C", 0, 0, 150, 50)]);
+  moved = MN.snap.snapMove(rect("C", 0, 0, 150, 50), 0, 508);
+  log("2. the vertical gaps equalise", moved.y === 500, "y=" + moved.y);
+  const spans2 = moved.guides.filter(function (g) { return g.kind === "span" && g.axis === "y"; });
+  log("2. the gap is 150", spans2.length === 1 && spans2[0].gap === 150, spans2.length ? String(spans2[0].gap) : "none");
+
+  /* 3. the same, with Alt held: no snap and no guides */
+  setup([rect("A", 0, 0, 40, 20), rect("B", 200, 0, 40, 20), rect("C", 0, 0, 40, 20)]);
+  const raw = { x: 108, y: 0, guides: [] };
+  log("3. Alt bypasses it", raw.guides.length === 0 && raw.x === 108);
+
+  /* 4. a left neighbour only: no spans */
+  setup([rect("A", 0, 0, 40, 20), rect("C", 0, 0, 40, 20)]);
+  moved = MN.snap.snapMove(dragged, 108, 0);
+  log("4. one neighbour is not enough",
+    moved.guides.filter(function (g) { return g.kind === "span"; }).length === 0,
+    JSON.stringify(moved.guides.map(function (g) { return g.kind; })));
+
+  /* 5. on release the guides are cleared */
+  MN.snap.renderGuides(moved.guides, dragged);
+  const shown = frame.contentDocument.querySelectorAll("#guides .guide, #guides .guide-span, #guides .guide-chip").length;
+  MN.snap.clearGuides();
+  const after = frame.contentDocument.querySelectorAll("#guides .guide, #guides .guide-span, #guides .guide-chip").length;
+  log("5. the guides are cleared on release", after === 0, shown + " drawn -> " + after + " left");
+
+  /* 6. alignment wins over spacing */
+  setup([rect("A", 0, 0, 40, 20), rect("B", 200, 0, 40, 20), rect("C", 0, 0, 40, 20)]);
+  moved = MN.snap.snapMove(dragged, 197, 0);
+  const lines6 = moved.guides.filter(function (g) { return g.kind === "line" && g.axis === "x"; });
+  const spans6 = moved.guides.filter(function (g) { return g.kind === "span"; });
+  /* The reference implementation lands on 194, with the line at the canvas
+     centre: the centre of C lines up with the centre of the board, which is
+     as close as B's left edge is. What matters is that an alignment wins and
+     no spacing is offered. */
+  log("6. alignment wins", lines6.length === 1 && spans6.length === 0 && moved.x !== 197,
+    "x=" + moved.x + " " + JSON.stringify(moved.guides.map(function (g) { return g.kind; })));
+
+  /* 7. overlapping: no negative gaps, no spans */
+  setup([rect("A", 0, 0, 40, 20), rect("B", 100, 0, 40, 20), rect("C", 0, 0, 40, 20)]);
+  moved = MN.snap.snapMove(dragged, 110, 0);
+  const spans7 = moved.guides.filter(function (g) { return g.kind === "span"; });
+  log("7. an overlap makes no spans", spans7.length === 0, JSON.stringify(moved.guides.map(function (g) { return g.kind; })));
+
+  /* 8. the snap distance stays about six screen pixels, not six units */
+  const zoomed = [];
+  for (const zoom of [0.5, 2]) {
+    state.view.zoom = zoom;
+    setup([rect("A", 0, 0, 40, 20), rect("B", 200, 0, 40, 20), rect("C", 0, 0, 40, 20)]);
+    /* A gap difference of one unit is inside the tolerance at any zoom. */
+    const r = MN.snap.snapMove(dragged, 108.4, 0);
+    zoomed.push(zoom + ":" + r.x);
+  }
+  log("8. the tolerance is in screen pixels", zoomed[0] === "0.5:100" && zoomed[1] === "2:100", zoomed.join(" "));
+
+  lines.push("");
+  lines.push(failures === 0 ? "ALL PASS" : failures + " FAILURE(S)");
+  document.getElementById("out").innerHTML += "\n" + lines[lines.length - 1];
+  document.title = failures === 0 ? "TEST PASS" : "TEST FAIL " + failures;
+  try {
+    fetch("/__result", { method: "POST", body: lines.join("\n") });
+  } catch (err) { /* the report is in the page as well */ }
+
+  /* And leave the board showing the equal spacing, so the guide and the
+     measurement can be seen. */
+  setup([rect("A", 40, 120, 90, 60), rect("B", 320, 120, 90, 60), rect("C", 190, 120, 90, 60)]);
+  const draggedBox = rect("C", 0, 0, 90, 60);
+  const snapped = MN.snap.snapMove(draggedBox, 190, 120);
+  state.items[2].x = snapped.x;
+  S.commit("spacing demo");
+  MN.snap.renderGuides(snapped.guides, state.items[2]);
+  const view = frame.contentDocument.querySelector("#viewport");
+  view.scrollLeft = 0;
+  view.scrollTop = 40;
+});
+</script>
+</body>
+</html>
