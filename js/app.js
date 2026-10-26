@@ -59,10 +59,17 @@
   }
 
   function renderCanvasControls() {
-    core.$("#c-width").value = state.canvas.width;
-    core.$("#c-height").value = state.canvas.height;
-    core.$("#c-unit").value = state.canvas.unit;
-    core.$("#c-scale").value = core.fmtNum(state.canvas.scale, 4);
+    /* The toolbar and the canvas panel show the same numbers. Whichever one
+       you change, the other follows — but never fight the field you are
+       typing in. */
+    const active = document.activeElement;
+    const set = function (el, value) {
+      if (el && el !== active) el.value = value;
+    };
+    set(core.$("#c-width"), state.canvas.width);
+    set(core.$("#c-height"), state.canvas.height);
+    set(core.$("#c-unit"), state.canvas.unit);
+    set(core.$("#c-scale"), core.fmtNum(state.canvas.scale, 4));
   }
 
   /* The board is drawn in pixels: canvas units x scale x zoom.
@@ -398,6 +405,7 @@
     S.resetHistory();
     S.on("change", function () {
       updateEmptyState();
+      renderCanvasControls();
     });
     setStatus("Ready — import a folder of images, then set the canvas.");
   }
@@ -408,5 +416,10 @@
     boot();
   }
 
-  MN.app = { setStatus: setStatus, CAPS: CAPS, applyCapabilities: applyCapabilities };
+  MN.app = {
+    setStatus: setStatus,
+    CAPS: CAPS,
+    applyCapabilities: applyCapabilities,
+    renderCanvasControls: renderCanvasControls,
+  };
 })(window.MN = window.MN || {});

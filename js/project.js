@@ -40,7 +40,6 @@
      mistaken for our own. */
   const tabId = core.uid("tab");
 
-  let dbPromise = null;
   let autosaveTimer = null;
   let rollingTimer = null;
   let loadedRev = 0;       // the revision this tab last read or wrote
@@ -48,6 +47,7 @@
   let viewDirty = false;   // this tab has changed the view only
   let otherTabUpdated = false;
   let conflict = null;     // { rev, at, itemCount } when another tab is newer
+  let lastSaveAt = 0;
   let warned = false;
   let channel = null;
 

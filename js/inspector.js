@@ -71,6 +71,56 @@
     });
     frag.appendChild(row("Name", nameInput));
 
+    /* The canvas size belongs here as well as in the toolbar: this panel is
+       where you look for the canvas, and it should not be a dead end. */
+    const unit = unitLabel();
+    const widthInput = numberField("i-cw", c.width, { min: 0.01, step: "any", label: "Canvas width" });
+    const heightInput = numberField("i-ch", c.height, { min: 0.01, step: "any", label: "Canvas height" });
+    const unitSelect = core.el("select", { id: "i-cu", "aria-label": "Canvas unit" },
+      Object.keys(MN.units.UNITS).map(function (name) {
+        return core.el("option", { value: name, text: name });
+      }));
+    unitSelect.value = c.unit;
+    const scaleInput = numberField("i-cs", c.scale, { min: 0.0001, step: "any", label: "Pixels per canvas unit" });
+
+    function setCanvas(patch, label) {
+      Object.assign(state.canvas, patch);
+      S.commit(label);
+      MN.stage.applyView();
+      if (MN.app.renderCanvasControls) MN.app.renderCanvasControls();
+    }
+
+    widthInput.addEventListener("change", function () {
+      setCanvas({ width: Math.max(0.01, core.num(widthInput.value)) }, "canvas width");
+    });
+    heightInput.addEventListener("change", function () {
+      setCanvas({ height: Math.max(0.01, core.num(heightInput.value)) }, "canvas height");
+    });
+    unitSelect.addEventListener("change", function () {
+      const next = unitSelect.value;
+      const previous = state.canvas.unit;
+      const patch = { unit: next };
+      if (state.canvas.scale === MN.units.UNITS[previous].defaultScale) {
+        patch.scale = MN.units.UNITS[next].defaultScale;
+      }
+      if (state.view.gridSize === MN.units.UNITS[previous].defaultGrid) {
+        state.view.gridSize = MN.units.UNITS[next].defaultGrid;
+      }
+      setCanvas(patch, "canvas unit");
+      render();
+    });
+    scaleInput.addEventListener("change", function () {
+      setCanvas({ scale: Math.max(0.0001, core.num(scaleInput.value)) }, "canvas scale");
+    });
+
+    frag.appendChild(row("Width", widthInput, unit));
+    frag.appendChild(row("Height", heightInput, unit));
+    frag.appendChild(row("Unit", unitSelect));
+    frag.appendChild(row("Scale", scaleInput, "px/unit"));
+    frag.appendChild(core.el("p", { class: "hint small" }, [
+      document.createTextNode("Changing the size does not move anything. The export follows the new size."),
+    ]));
+
     frag.appendChild(core.el("p", { class: "summary" }, [
       core.el("b", { text: core.fmtNum(c.width * c.scale, 2) + " × " + core.fmtNum(c.height * c.scale, 2) + " px" }),
       document.createTextNode(" on screen · "),

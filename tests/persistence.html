@@ -98,6 +98,10 @@ function readCurrent(frame) {
     log("tab B is stale", wB.MN.state.state.items.length === 0,
       "items=" + wB.MN.state.state.items.length);
 
+    /* A layout save must reach the other tab as well as a view save. */
+    log("tab B was told about tab A's layout save",
+      wB.MN.project.getOtherTabUpdated() === true);
+
     /* 3. Tab B changes the zoom and saves: a view-only change. */
     wB.MN.stage.setZoom(0.5);
     await wait(1400);
