@@ -118,6 +118,17 @@ The rules and the reasoning are in
 [docs/AUTOSAVE_AND_RECOVERY.md](docs/AUTOSAVE_AND_RECOVERY.md), which exists
 because a real 34-magnet Redline layout was lost to exactly this failure.
 
+### If your board looks empty
+
+It is probably in a different browser. The board is kept by the browser you
+made it in — Chrome, Safari and Firefox each hold their own copy — so opening
+the site in another one shows a blank canvas rather than losing anything. The
+**History** button lists every version from *that* browser, and **Save** writes
+a file you can open anywhere.
+
+Something wrong? [Open an issue](https://github.com/Roqett/napkinetic/issues) —
+a screenshot and your browser version is enough.
+
 ## Privacy
 
 Everything stays on your machine. The page loads nothing from the network, sends nothing anywhere, and keeps no analytics. The board and its images live in your browser's own storage (IndexedDB) so that reopening the page restores it. You can wipe that with **New** or by clearing site data.
@@ -129,6 +140,8 @@ SVG files are loaded through `<img>`, so they cannot run scripts. Text from file
 ## The browser
 
 Current Chrome, Safari and Firefox. Firefox has no `webkitGetAsEntry`, so folder drops there use the File System Access API instead; the **Import folder…** button works everywhere.
+
+The automated suite runs in Chrome and Firefox; Safari has a different code path for folder drops and is checked by hand. [docs/PRESSURE_TEST.md](docs/PRESSURE_TEST.md) is the twenty-minute version, and is worth running before pointing anyone at the app.
 
 ## Licence
 
