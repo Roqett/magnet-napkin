@@ -29,8 +29,11 @@ A new window, nothing cached.
 
 1. Open `https://roqett.github.io/napkinetic/`. **Do not touch anything for five
    seconds.** Is the welcome text whole? Is it obvious what to do first?
-2. **Import folder…** with the big folder on it. Start a timer.
-3. Drag one of the large images onto the canvas.
+2. **Find Save, Open and Handoff without scrolling or widening the window.** If
+   you have to hunt for them, that is a finding — they are the three buttons a
+   person needs before they have anything worth keeping.
+3. **Import folder…** with the big folder on it. Start a timer.
+4. Drag one of the large images onto the canvas.
 
 **Should:** open fitted to the whole board; the import completes and the tray
 fills; dragging a 4000 px asset is smooth enough to place it precisely.
