@@ -82,6 +82,18 @@ and adds one line above the list explaining the marks. The wording of the note i
 
 The same stripped text goes into the `layout.json` that is handed over. A project **saved** with **Save** keeps the original text, because that file is your archive rather than something you are sending.
 
+## What the marks do not cover
+
+The marks live in `notes.md`. The same text also travels in `layout.json`, in the annotated PNG, and — for text items — in the clean PNG, where nothing can be marked without altering the design. The brief is the channel that *says what it is*; the images and the contract are evidence, not commentary.
+
+Three limits worth knowing before relying on this:
+
+- **The check is a short, published list of phrasings.** Anyone who wants a sentence past it can read `js/handoff.js` and word around it. It catches the accident and the lazy attempt, not a targeted one.
+- **Design text is not checked.** An instruction can sit in a text item as easily as in a note, and a text item is design content by definition.
+- **Nothing here instructs the reader.** The brief says what the notes are; it never tells a model what to do with them. If a downstream agent ignores its own instructions, this file cannot save it.
+
+What does hold regardless: the design and the reasoning are never mixed in one render, and the page cannot reach the network, so a successful injection has nowhere to send anything from.
+
 ## Giving it to an agent
 
 The useful pattern, in order:
