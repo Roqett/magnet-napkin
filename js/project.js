@@ -913,6 +913,11 @@
       MN.assets.renderTray();
       MN.stage.applyView();
       MN.app.setStatus("Restored your last board from this browser.");
+    } else {
+      /* Nothing stored yet. Show the whole board rather than the top-left
+         corner of it: a 1200 × 800 canvas at 100% does not fit a laptop
+         window, and the middle of it is where the welcome text is. */
+      MN.stage.fit();
     }
 
     /* The symbol library is always in the tray. */
