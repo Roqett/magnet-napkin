@@ -51,6 +51,14 @@ browser does not exit before the results are posted.
 | `notes.md` says which file is the design | the brief must not mislead |
 | the document format | `napkinetic/v1` and the separate arrays |
 | IndexedDB is available | autosave needs it |
+| a network request is refused | the page promises it never talks to the network |
+| an XHR is refused | and not through the old API either |
+| a colour cannot carry a request | a `url()` in a style value is a request |
+| an oversized image is refused | a 100 MP file kills the tab, not the layout |
+| a note that reads like an instruction is marked | the brief may be read by a model |
+| an ordinary note is not marked | a mark on everything marks nothing |
+| a bidi override is removed from the brief | what you see must be what the machine reads |
+| a note cannot start a section of its own | one note is one line in the brief |
 | no console errors | the gate for every phase |
 
 Last run: all pass in Chrome 152 and Firefox 156, macOS.

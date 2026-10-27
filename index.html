@@ -3,6 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- The page loads nothing it did not ship with, and sends nothing anywhere.
+     This is that promise as an instruction to the browser, for the cases the
+     code cannot cover: a host that starts injecting a script, a proxy that
+     rewrites a response, a rule someone adds later. No inline script or style
+     is used, so neither is allowed. frame-ancestors cannot be set from a meta
+     tag; js/sanity.js handles the framed case instead. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' blob: data:; font-src 'self'; connect-src 'none'; media-src 'self' blob:; base-uri 'none'; form-action 'none'">
 <meta name="color-scheme" content="light dark">
 <title>Napkinetic</title>
 <meta name="description" content="Drop a folder of images onto a canvas of a known size, move them like magnets, leave notes that are clearly not part of the design, and export the layout plus a brief for a vision agent.">
@@ -183,6 +190,7 @@
 <input id="json-input" type="file" accept=".json,application/json" hidden>
 
 <script src="js/core.js"></script>
+<script src="js/sanity.js"></script>
 <script src="js/units.js"></script>
 <script src="js/state.js"></script>
 <script src="js/stage.js"></script>

@@ -122,7 +122,9 @@ because a real 34-magnet Redline layout was lost to exactly this failure.
 
 Everything stays on your machine. The page loads nothing from the network, sends nothing anywhere, and keeps no analytics. The board and its images live in your browser's own storage (IndexedDB) so that reopening the page restores it. You can wipe that with **New** or by clearing site data.
 
-SVG files are loaded through `<img>`, so they cannot run scripts. Text from files and from your notes is inserted as text, never as markup.
+That is enforced rather than intended. A content security policy in `index.html` allows no connection of any kind, no inline script and no remote image, and `js/sanity.js` refuses a network call even if a later change adds one by mistake. If you keep the board in one of your own GitHub Pages repositories, remember that every project under `username.github.io` shares one browser origin: the same storage, the same page can read it.
+
+SVG files are loaded through `<img>`, so they cannot run scripts. Text from files and from your notes is inserted as text, never as markup. A colour read from a project file has to be a colour — a `url()` in that position would be a request.
 
 ## The browser
 

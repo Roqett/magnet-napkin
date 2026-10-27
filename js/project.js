@@ -613,6 +613,16 @@
     return core.clamp(n, lo, hi);
   }
 
+  /* Every colour that comes out of a file passes through here before it can
+     reach a style property. A style value can carry a url(), and a url() is a
+     request; only the forms this app writes are let through. */
+  function colour(value, fallback) {
+    if (MN.sanity && typeof MN.sanity.safeColour === "function") {
+      return MN.sanity.safeColour(value, fallback);
+    }
+    return typeof value === "string" ? value : fallback;
+  }
+
   function normaliseItem(raw) {
     if (!raw || typeof raw !== "object") return null;
     const kind = raw.kind === "text" ? "text" : raw.kind === "shape" ? "shape" : "image";
@@ -633,9 +643,9 @@
       const spec = S.shapeSpec(raw.shape);
       item.shape = spec.id;
       item.text = typeof raw.text === "string" ? raw.text : spec.text;
-      item.fill = typeof raw.fill === "string" ? raw.fill : spec.fill;
-      item.border = typeof raw.border === "string" ? raw.border : spec.border;
-      item.color = typeof raw.color === "string" ? raw.color : spec.color;
+      item.fill = colour(raw.fill, spec.fill);
+      item.border = colour(raw.border, spec.border);
+      item.color = colour(raw.color, spec.color);
       item.borderWidth = clampNumber(raw.borderWidth, 1, 0, 20);
       item.fontFamily = typeof raw.fontFamily === "string" ? raw.fontFamily : "Helvetica Neue";
       item.fontSize = clampNumber(raw.fontSize, 0, 0, 1000);
@@ -646,8 +656,8 @@
       item.fontFamily = typeof raw.fontFamily === "string" ? raw.fontFamily : "system-ui";
       item.fontSize = clampNumber(raw.fontSize, 12, 0.5, 1000);
       item.fontWeight = clampNumber(raw.fontWeight, 400, 100, 900);
-      item.color = typeof raw.color === "string" ? raw.color : "#111111";
-      item.background = typeof raw.background === "string" ? raw.background : "transparent";
+      item.color = colour(raw.color, "#111111");
+      item.background = colour(raw.background, "transparent");
       item.align = ["left", "center", "right"].indexOf(raw.align) >= 0 ? raw.align : "left";
       item.autoHeight = raw.autoHeight !== false;
     }
@@ -670,10 +680,10 @@
       fontFamily: typeof raw.fontFamily === "string" ? raw.fontFamily : "system-ui",
       fontSize: clampNumber(raw.fontSize, 11, 0.5, 1000),
       fontWeight: clampNumber(raw.fontWeight, 400, 100, 900),
-      color: typeof raw.color === "string" ? raw.color : "#1c1c1c",
-      background: typeof raw.background === "string" ? raw.background : "#fff3b0",
+      color: colour(raw.color, "#1c1c1c"),
+      background: colour(raw.background, "#fff3b0"),
       border: typeof raw.border === "string" ? raw.border : "dashed",
-      borderColor: typeof raw.borderColor === "string" ? raw.borderColor : "#b08900",
+      borderColor: colour(raw.borderColor, "#b08900"),
       align: ["left", "center", "right"].indexOf(raw.align) >= 0 ? raw.align : "left",
       autoHeight: raw.autoHeight !== false,
       includeInCleanPNG: false,
@@ -695,7 +705,7 @@
         : "checker";
       base.background = {
         type: type,
-        value: typeof raw.background.value === "string" ? raw.background.value : "#eef0f3",
+        value: colour(raw.background.value, "#eef0f3"),
       };
     }
     if (raw.underlay && typeof raw.underlay === "object") {

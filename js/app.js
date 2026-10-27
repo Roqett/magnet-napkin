@@ -392,6 +392,13 @@
   }
 
   function boot() {
+    /* A board framed by another site is not usable: a click could land on it
+       without the owner meaning it to. The same-origin frames the test pages
+       use are unaffected. */
+    if (MN.sanity && MN.sanity.framedByAnotherSite()) {
+      MN.sanity.showFramedNotice();
+      return;
+    }
     applyCapabilities();
     renderCanvasControls();
     updateEmptyState();

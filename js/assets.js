@@ -18,6 +18,10 @@
     "image/png": 1, "image/jpeg": 1, "image/webp": 1, "image/svg+xml": 1, "image/gif": 1,
   };
 
+  /* Images that were refused for a reason worth naming, so the status line
+     can say which and why rather than counting them as anonymous skips. */
+  const refused = [];
+
   const trayEl = core.$("#tray-scroll");
   const trayCountEl = core.$("#tray-count");
   const trayEmptyEl = core.$("#tray-empty");
@@ -26,6 +30,16 @@
   function extOf(name) {
     const match = /\.([a-z0-9]+)$/i.exec(name || "");
     return match ? match[1].toLowerCase() : "";
+  }
+
+  /* One wording for the status line, wherever the folder came from. */
+  function importSummary(result) {
+    const parts = [result.added + " image" + (result.added === 1 ? "" : "s") + " imported"];
+    if (result.skipped) parts.push(result.skipped + " skipped");
+    if (result.refused && result.refused.length) {
+      parts.push(result.refused.length + " too large to lay out");
+    }
+    return parts.join(" · ");
   }
 
   /* Only formats a browser can actually decode. HEIC and friends are out. */
@@ -61,6 +75,18 @@
       URL.revokeObjectURL(url);
       return null;
     }
+    /* A huge image is not a picture that will not fit, it is a tab that will
+       die while decoding it. Refused before it is ever drawn. */
+    if (MN.sanity && MN.sanity.imageTooLarge(size.width, size.height)) {
+      URL.revokeObjectURL(url);
+      refused.push({
+        name: file.name,
+        width: size.width,
+        height: size.height,
+        reason: "too large",
+      });
+      return null;
+    }
     const asset = {
       id: core.uid("a"),
       name: file.name,
@@ -77,6 +103,7 @@
 
   /* Import a flat list of { file, path }. Dedupe by path, sort by path. */
   async function importEntries(entries) {
+    refused.length = 0;
     const seen = new Map();
     let skipped = 0;
     for (const entry of entries) {
@@ -99,8 +126,8 @@
 
     renderTray();
     S.emit("change", { label: "import assets" });
-    S.emit("assets-imported", { added: added, skipped: skipped });
-    return { added: added, skipped: skipped };
+    S.emit("assets-imported", { added: added, skipped: skipped, refused: refused.slice() });
+    return { added: added, skipped: skipped, refused: refused.slice() };
   }
 
   async function importFileList(fileList) {
@@ -372,8 +399,7 @@
       document.body.classList.remove("dropping");
       const entries = await entriesFromDataTransfer(e.dataTransfer);
       const result = await importEntries(entries);
-      MN.app.setStatus(result.added + " image" + (result.added === 1 ? "" : "s") + " imported" +
-        (result.skipped ? " · " + result.skipped + " skipped" : ""));
+      MN.app.setStatus(importSummary(result));
     });
   }
 
@@ -388,8 +414,7 @@
         const files = e.target.files;
         if (!files || !files.length) return;
         importFileList(files).then(function (result) {
-          MN.app.setStatus(result.added + " image" + (result.added === 1 ? "" : "s") + " imported" +
-            (result.skipped ? " · " + result.skipped + " skipped" : ""));
+          MN.app.setStatus(importSummary(result));
         });
         e.target.value = "";
       });
